@@ -3,7 +3,7 @@
 ![build](https://github.com/brentyi/jax_dataclasses/workflows/build/badge.svg)
 ![mypy](https://github.com/brentyi/jax_dataclasses/workflows/mypy/badge.svg?branch=main)
 ![lint](https://github.com/brentyi/jax_dataclasses/workflows/lint/badge.svg)
-[![codecov](https://codecov.io/gh/brentyi/jax_dataclasses/branch/master/graph/badge.svg)](https://codecov.io/gh/brentyi/jaxlie)
+[![codecov](https://codecov.io/gh/brentyi/jax_dataclasses/branch/master/graph/badge.svg)](https://codecov.io/gh/brentyi/jax_dataclasses)
 
 Library for using dataclasses as JAX PyTrees.
 
