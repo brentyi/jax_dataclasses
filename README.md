@@ -5,11 +5,11 @@
 ![lint](https://github.com/brentyi/jax_dataclasses/workflows/lint/badge.svg)
 [![codecov](https://codecov.io/gh/brentyi/jax_dataclasses/branch/main/graph/badge.svg?token=fFSx7CeKlW)](https://codecov.io/gh/brentyi/jax_dataclasses)
 
-Library for using dataclasses as JAX PyTrees.
+Library for using dataclasses as JAX pytrees.
 
 Key features:
 
-- PyTree registration; automatic generation of flatten/unflatten ops.
+- Pytree registration; automatic generation of flatten/unflatten ops.
 - Static analysis-friendly. Works out of the box with tools like `mypy` and
   `jedi`.
 - Support for serialization via `flax.serialization`.
@@ -22,10 +22,10 @@ Key features:
 `dataclasses.dataclass`:
 
 - <code>jax_dataclasses.<strong>dataclass</strong></code> has the same interface
-  as `dataclasses.dataclass`, but also register a class as a PyTree.
+  as `dataclasses.dataclass`, but also register a class as a pytree.
 - <code>jax_dataclasses.<strong>static_field</strong></code> has the same
   interface as `dataclasses.field`, but will also mark the field as static. In a
-  PyTree node, static fields are treated as part of the treedef instead of as a
+  pytree node, static fields are treated as part of the treedef instead of as a
   child of the node.
 
 We also provide several aliases:
@@ -35,7 +35,7 @@ identical to their counterparts in the standard dataclasses library.
 #### Mutations
 
 All dataclasses are automatically marked as frozen and thus immutable. We do,
-however, provide an interface that will (a) make a copy of a PyTree and (b)
+however, provide an interface that will (a) make a copy of a pytree and (b)
 return a context in which any of that copy's contained dataclasses are
 temporarily mutable:
 
@@ -63,11 +63,11 @@ print(obj_updated)
 
 For compatibility with function transformations in JAX (jit, grad, vmap, etc),
 arguments and return values must all be
-[PyTree](https://jax.readthedocs.io/en/latest/pytrees.html) containers.
+[pytree](https://jax.readthedocs.io/en/latest/pytrees.html) containers.
 Dataclasses, by default, are not.
 
 A few great solutions exist for automatically integrating dataclass-style
-objects into PyTree structures, notably
+objects into pytree structures, notably
 [`chex.dataclass`](https://github.com/deepmind/chex) and
 [`flax.struct`](https://github.com/google/flax). This library implements another
 one.

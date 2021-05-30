@@ -28,7 +28,7 @@ def dataclass(cls: Optional[Type] = None, **kwargs):
 
 
 def _register(cls: Type[T]) -> Type[T]:
-    """Register a dataclass as a flax-serializable PyTree.
+    """Register a dataclass as a flax-serializable pytree.
 
     Args:
         cls (Type[T]): Dataclass to wrap.
@@ -137,5 +137,5 @@ def _new_setattr(self, name: str, value: Any):
         object.__setattr__(self, name, value)
     else:
         raise dataclasses.FrozenInstanceError(
-            "Dataclass registered as PyTrees is immutable!"
+            "Dataclass registered as pytree is immutable!"
         )

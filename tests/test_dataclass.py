@@ -78,7 +78,7 @@ def test_static_field():
             return obj.field1 - obj.field2
 
     with pytest.raises(ValueError):
-        # Cannot map over PyTrees with different treedefs
+        # Cannot map over pytrees with different treedefs
         _assert_pytree_allclose(A(1.0, 2.0, False), A(1.0, 2.0, True))
 
     _assert_pytree_allclose(jitted_op(A(5.0, 3.0, True)), 8.0)

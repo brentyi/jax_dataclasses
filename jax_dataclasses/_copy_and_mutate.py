@@ -24,7 +24,7 @@ def _mark_mutable(obj: Any, mutable: bool) -> None:
 
 
 def copy_and_mutate(obj: T) -> ContextManager[T]:
-    """Context manager that copies a PyTree and allows for temporary mutations to
+    """Context manager that copies a pytree and allows for temporary mutations to
     contained dataclasses. Also validates that treedefs, array shapes, etc are
     not changed."""
 
