@@ -33,7 +33,7 @@ pip install jax_dataclasses
 
 ### Core interface
 
-`jax_dataclasses` is meant to be a drop-in replacement for
+`jax_dataclasses` is meant to provide a drop-in replacement for
 `dataclasses.dataclass`:
 
 - <code>jax_dataclasses.<strong>dataclass</strong></code> has the same interface
@@ -49,10 +49,11 @@ identical to their counterparts in the standard dataclasses library.
 
 ### Mutations
 
-All dataclasses are automatically marked as frozen and thus immutable. To make
-changes to nested structures easier, we provide an interface that will (a) make
-a copy of a pytree and (b) return a context in which any of that copy's
-contained dataclasses are temporarily mutable:
+All dataclasses are automatically marked as frozen and thus immutable (regardless
+of whether a `frozen=` parameter is passed in). To make changes to nested structures
+easier, we provide an interface that will (a) make a copy of a pytree and (b)
+return a context in which any of that copy's contained dataclasses are temporarily
+mutable:
 
 ```python
 from jax import numpy as jnp
