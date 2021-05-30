@@ -87,7 +87,7 @@ one.
 
 - Lack support for static analysis and type-checking. Static analysis for
   libraries like `dataclasses` and `attrs` tends to rely on tooling-specific
-  custom plugins, which doesn't exist for either `chex.dataclass` or
+  custom plugins, which don't exist for either `chex.dataclass` or
   `flax.struct`.
 - Make modifying deeply nested dataclasses fairly frustrating. Both introduce a
   `.replace(self, ...)` method to dataclasses that's a bit more convenient than
