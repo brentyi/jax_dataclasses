@@ -4,7 +4,6 @@
 import flax
 import jax
 import numpy as onp
-import pytest
 
 import jax_dataclasses
 
