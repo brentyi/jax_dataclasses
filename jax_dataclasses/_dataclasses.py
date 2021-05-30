@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, List, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Dict, List, Optional, Type, TypeVar
 
 import jax
 from flax import serialization
@@ -12,21 +12,42 @@ T = TypeVar("T")
 FIELD_METADATA_STATIC_MARKER = "__jax_dataclasses_static_field__"
 
 
-def static_field(*args, **kwargs):
-    kwargs["metadata"] = kwargs.get("metadata", {})
-    kwargs["metadata"][FIELD_METADATA_STATIC_MARKER] = True
+if TYPE_CHECKING:
+    # Treat our JAX field and dataclass functions as standard dataclasses for the sake
+    # of static analysis.
+    #
+    # Tools like via mypy, jedi, etc generally rely on a lot of special, hardcoded
+    # behavior for the standard dataclasses library; this lets us take advantage of most
+    # of it.
+    #
+    # Note that mypy will not follow aliases, so `from dataclasses import dataclass` is
+    # preferred over `dataclass = dataclasses.dataclass`.
+    #
+    # For the future, this is also something to look into:
+    # https://github.com/microsoft/pyright/blob/master/specs/dataclass_transforms.md
+    from dataclasses import dataclass
+    from dataclasses import field as static_field
+else:
 
-    return dataclasses.field(*args, **kwargs)
+    def static_field(*args, **kwargs):
+        kwargs["metadata"] = kwargs.get("metadata", {})
+        kwargs["metadata"][FIELD_METADATA_STATIC_MARKER] = True
 
+        return dataclasses.field(*args, **kwargs)
 
-def dataclass(cls: Optional[Type] = None, **kwargs):
-    def wrap(cls):
-        return _register(dataclasses.dataclass(cls, **kwargs))
+    def dataclass(cls: Optional[Type] = None, **kwargs):
+        """Wrapper for . During static analysis,"""
 
-    if cls is None:
-        return wrap
-    else:
-        return wrap(cls)
+        def wrap(cls):
+            return _register(dataclasses.dataclass(cls, **kwargs))
+
+        if "frozen" in kwargs:
+            assert kwargs["frozen"] is True, "Pytree dataclasses can only be frozen!"
+
+        if cls is None:
+            return wrap
+        else:
+            return wrap(cls)
 
 
 def _register(cls: Type[T]) -> Type[T]:
