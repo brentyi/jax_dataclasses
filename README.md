@@ -19,12 +19,8 @@ automatically enables:
 - Static analysis-friendly. Works out of the box with tools like `mypy` and
   `jedi`.
 
-A few other great solutions exist for automatically integrating dataclass-style
-objects into pytree structures, notably
-[`chex.dataclass`](https://github.com/deepmind/chex),
-[`flax.struct`](https://github.com/google/flax), and
-[`tjax.dataclass`](https://github.com/NeilGirdhar/tjax). See
-[Alternatives](#alternatives) for notes on differences.
+This library was heavily influenced by some great existing work; see
+[Alternatives](#alternatives) for a comparison.
 
 ### Installation
 
@@ -50,11 +46,11 @@ identical to their counterparts in the standard dataclasses library.
 
 ### Mutations
 
-All dataclasses are automatically marked as frozen and thus immutable
-(regardless of whether a `frozen=` parameter is passed in). To make changes to
-nested structures easier, we provide an interface that will (a) make a copy of a
-pytree and (b) return a context in which any of that copy's contained
-dataclasses are temporarily mutable:
+All dataclasses are automatically marked as frozen and thus immutable (even when
+no `frozen=` parameter is passed in). To make changes to nested structures
+easier, we provide an interface that will (a) make a copy of a pytree and (b)
+return a context in which any of that copy's contained dataclasses are
+temporarily mutable:
 
 ```python
 from jax import numpy as jnp
@@ -67,7 +63,8 @@ class Node:
 obj = Node(child=jnp.zeros(3))
 
 with jax_dataclasses.copy_and_mutate(obj) as obj_updated:
-  # Make mutations to the dataclass.
+  # Make mutations to the dataclass. This is primarily useful for nested
+  # dataclasses.
   #
   # Also does input validation: if the treedef, leaf shapes, or dtypes of `obj`
   # and `obj_updated` don't # match, an AssertionError will be raised.
@@ -80,28 +77,44 @@ print(obj_updated)
 
 ### Alternatives
 
-`chex.dataclass` is handy and lightweight, but currently lacks support for:
+A few other solutions exist for automatically integrating dataclass-style
+objects into pytree structures. Great ones include:
+[`chex.dataclass`](https://github.com/deepmind/chex),
+[`flax.struct`](https://github.com/google/flax), and
+[`tjax.dataclass`](https://github.com/NeilGirdhar/tjax). These all influenced
+this library.
 
-- Static fields: parameters that are either non-differentiable or simply not
-  arrays.
-- Serialization using `flax.serialization`. This is really handy when parameters
-  needed to be saved to disk!
+The main differentiators of `jax_dataclasses` are:
 
-`flax.struct` addresses the two points above, but both it and `chex.dataclass`:
+- **Static analysis support.** Libraries like `dataclasses` and `attrs` rely on
+  tooling-specific custom plugins for static analysis, which don't exist for
+  `chex` or `flax`. `tjax` has a custom mypy plugin to enable type checking, but
+  isn't supported by other tools.
 
-- Lack support for static analysis and type-checking. Static analysis for
-  libraries like `dataclasses` and `attrs` tends to rely on tooling-specific
-  custom plugins, which don't exist for either `chex.dataclass` or
-  `flax.struct`. See `jax_dataclasses/_dataclasses.py` for how we fix this.
+  - Because `@jax_dataclasses.dataclass` decorator has the same API as
+    `@dataclasses.dataclass`, it can include pytree registration behavior at
+    runtime while being treated as the standard decorator during static
+    analysis. This means that all static checkers, language servers, and
+    autocomplete engines that support the standard `dataclasses` library should
+    work out of the box with `jax_dataclasses`.
 
-`tjax.dataclass` includes a custom `mypy` plugin for type checking, but:
+- **Nested dataclasses.** Making replacements/modifications in deeply nested
+  dataclasses is generally very frustrating. The three alternatives all
+  introduce a `.replace(self, ...)` method to dataclasses that's a bit more
+  convenient than the traditional `dataclasses.replace(obj, ...)` API for
+  shallow changes, but still becomes really cumbersome to use when dataclasses
+  are nested. `jax_dataclasses.copy_and_mutate()` is introduced to address this.
 
-- Doesn't support other static analysis tools. (autocomplete, language servers,
-  etc)
-- Lacks support for `flax.serialization`.
+- **Static field support.** Parameters that should not be traced in JAX should
+  be marked as static. This is supported in `flax`, `tjax`, and
+  `jax_dataclasses`, but not `chex`.
 
-Finally, all 3 of the above make modifying deeply nested dataclasses really
-frustrating. They introduce a `.replace(self, ...)` method to dataclasses that's
-a bit more convenient than the traditional `dataclasses.replace(obj, ...)` API
-for shallow changes, but still becomes really cumbersome to use when dataclasses
-are nested. `jax_dataclasses.copy_and_mutate()` is introduced to address this.
+- **Serialization.** When working with `flax`, being able to serialize
+  dataclasses is really handy. This is supported in `flax.struct` (naturally)
+  and `jax_dataclasses`, but not `chex` or `tjax`.
+
+### Misc
+
+This code was originally written for and factored out of
+[jaxfg](http://github.com/brentyi/jaxfg).
+[Nick Heppert](https://github.com/SuperN1ck) provided valuable feedback.

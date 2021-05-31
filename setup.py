@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 setup(
     name="jax_dataclasses",
-    version="0.0.1",
+    version="0.0.2",
     description="Dataclasses + JAX",
     long_description=long_description,
     long_description_content_type="text/markdown",
