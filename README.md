@@ -63,7 +63,7 @@ with jax_dataclasses.copy_and_mutate(obj) as obj_updated:
   # dataclasses.
   #
   # Also does input validation: if the treedef, leaf shapes, or dtypes of `obj`
-  # and `obj_updated` don't # match, an AssertionError will be raised.
+  # and `obj_updated` don't match, an AssertionError will be raised.
   # This can be disabled with a `validate=False` argument.
   obj_updated.child = jnp.ones(3)
 
