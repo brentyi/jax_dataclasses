@@ -5,16 +5,12 @@
 ![lint](https://github.com/brentyi/jax_dataclasses/workflows/lint/badge.svg)
 [![codecov](https://codecov.io/gh/brentyi/jax_dataclasses/branch/main/graph/badge.svg?token=fFSx7CeKlW)](https://codecov.io/gh/brentyi/jax_dataclasses)
 
-For compatibility with function transformations in JAX (jit, grad, vmap, etc),
-arguments and return values must all be registered as
-[pytree](https://jax.readthedocs.io/en/latest/pytrees.html) containers.
-Dataclasses, by default, are not.
-
 This library provides a thin wrapper around `dataclasses.dataclass`, which
 automatically enables:
 
-- Pytree registration. This allows dataclasses to be used at API boundaries in
-  JAX. (necessary for function transformations, etc)
+- [Pytree](https://jax.readthedocs.io/en/latest/pytrees.html) registration.
+  This allows dataclasses to be used at API boundaries in JAX. (necessary for
+  function transformations, etc)
 - Support for serialization via `flax.serialization`.
 - Static analysis-friendly. Works out of the box with tools like `mypy` and
   `jedi`.
