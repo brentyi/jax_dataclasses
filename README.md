@@ -5,17 +5,17 @@
 ![lint](https://github.com/brentyi/jax_dataclasses/workflows/lint/badge.svg)
 [![codecov](https://codecov.io/gh/brentyi/jax_dataclasses/branch/main/graph/badge.svg?token=fFSx7CeKlW)](https://codecov.io/gh/brentyi/jax_dataclasses)
 
-This library provides a thin wrapper around `dataclasses.dataclass`, which
-automatically enables:
+`jax_dataclasses` provides a wrapper around `dataclasses.dataclass` for use in
+JAX. Features:
 
-- [Pytree](https://jax.readthedocs.io/en/latest/pytrees.html) registration.
-  This allows dataclasses to be used at API boundaries in JAX. (necessary for
-  function transformations, etc)
+- Automatic [pytree](https://jax.readthedocs.io/en/latest/pytrees.html)
+  registration. This allows dataclasses to be used at API boundaries in JAX.
+  (necessary for function transformations, etc)
 - Support for serialization via `flax.serialization`.
 - Static analysis-friendly. Works out of the box with tools like `mypy` and
   `jedi`.
 
-This library was heavily influenced by some great existing work; see
+Heavily influenced by some great existing work; see
 [Alternatives](#alternatives) for a comparison.
 
 ### Installation
@@ -87,7 +87,7 @@ The main differentiators of `jax_dataclasses` are:
   `chex` or `flax`. `tjax` has a custom mypy plugin to enable type checking, but
   isn't supported by other tools.
 
-  - Because `@jax_dataclasses.dataclass` decorator has the same API as
+  - Because `@jax_dataclasses.dataclass` has the same API as
     `@dataclasses.dataclass`, it can include pytree registration behavior at
     runtime while being treated as the standard decorator during static
     analysis. This means that all static checkers, language servers, and
