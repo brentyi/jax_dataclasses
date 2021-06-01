@@ -13,30 +13,33 @@ FIELD_METADATA_STATIC_MARKER = "__jax_dataclasses_static_field__"
 
 
 if TYPE_CHECKING:
-    # Treat our JAX field and dataclass functions as standard dataclasses for the sake
-    # of static analysis.
+    # Treat our JAX field and dataclass functions as their counterparts from the
+    # standard dataclasses library during static analysis
     #
     # Tools like via mypy, jedi, etc generally rely on a lot of special, hardcoded
-    # behavior for the standard dataclasses library; this lets us take advantage of most
+    # behavior for the standard dataclasses library; this lets us take advantage of all
     # of it.
     #
     # Note that mypy will not follow aliases, so `from dataclasses import dataclass` is
     # preferred over `dataclass = dataclasses.dataclass`.
     #
-    # For the future, this is also something to look into:
+    # For the future, dataclass transforms may also be worth looking into:
     # https://github.com/microsoft/pyright/blob/master/specs/dataclass_transforms.md
     from dataclasses import dataclass
     from dataclasses import field as static_field
 else:
 
     def static_field(*args, **kwargs):
+        """Substitute for dataclasses.field, which also marks a field as static."""
+
         kwargs["metadata"] = kwargs.get("metadata", {})
         kwargs["metadata"][FIELD_METADATA_STATIC_MARKER] = True
 
         return dataclasses.field(*args, **kwargs)
 
     def dataclass(cls: Optional[Type] = None, **kwargs):
-        """Wrapper for . During static analysis,"""
+        """Substitute for dataclasses.dataclass, which also registers dataclasses as
+        PyTrees."""
 
         def wrap(cls):
             return _register(dataclasses.dataclass(cls, **kwargs))
@@ -64,7 +67,10 @@ def _register(cls: Type[T]) -> Type[T]:
     child_node_field_names: List[str] = []
     static_fields: List[dataclasses.Field] = []
     for field in dataclasses.fields(cls):
-        if FIELD_METADATA_STATIC_MARKER in field.metadata:
+        if (
+            FIELD_METADATA_STATIC_MARKER in field.metadata
+            and field.metadata[FIELD_METADATA_STATIC_MARKER]
+        ):
             static_fields.append(field)
         else:
             child_node_field_names.append(field.name)
