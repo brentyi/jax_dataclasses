@@ -15,7 +15,7 @@ def _assert_pytree_allclose(x, y):
 
 
 def test_serialization():
-    @jax_dataclasses.dataclass
+    @jax_dataclasses.pytree_dataclass
     class A:
         field1: int
         field2: int

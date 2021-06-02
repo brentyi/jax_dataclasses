@@ -16,7 +16,7 @@ def _assert_pytree_allclose(x, y):
 
 
 def test_init():
-    @jax_dataclasses.dataclass
+    @jax_dataclasses.pytree_dataclass
     class A:
         field1: int
         field2: int
@@ -29,7 +29,7 @@ def test_init():
 
 
 def test_default_arg():
-    @jax_dataclasses.dataclass
+    @jax_dataclasses.pytree_dataclass
     class A:
         field1: int
         field2: int = 3
@@ -38,7 +38,7 @@ def test_default_arg():
 
 
 def test_flatten():
-    @jax_dataclasses.dataclass
+    @jax_dataclasses.pytree_dataclass
     class A:
         field1: float
         field2: float
@@ -51,7 +51,7 @@ def test_flatten():
 
 
 def test_unflatten():
-    @jax_dataclasses.dataclass
+    @jax_dataclasses.pytree_dataclass
     class A:
         field1: float
         field2: float
@@ -64,7 +64,7 @@ def test_unflatten():
 
 
 def test_static_field():
-    @jax_dataclasses.dataclass
+    @jax_dataclasses.pytree_dataclass
     class A:
         field1: float
         field2: float = jax_dataclasses.field()

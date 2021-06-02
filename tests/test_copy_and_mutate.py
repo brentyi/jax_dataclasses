@@ -10,11 +10,11 @@ import jax_dataclasses
 
 def test_copy_and_mutate():
     # frozen=True should do nothing
-    @jax_dataclasses.dataclass(frozen=True)
+    @jax_dataclasses.pytree_dataclass(frozen=True)
     class Foo:
         array: jnp.ndarray
 
-    @jax_dataclasses.dataclass
+    @jax_dataclasses.pytree_dataclass
     class Bar:
         children: List[Foo]
         array: jnp.ndarray
@@ -62,7 +62,7 @@ def test_copy_and_mutate():
 
 
 def test_copy_and_mutate_static():
-    @jax_dataclasses.dataclass
+    @jax_dataclasses.pytree_dataclass
     class Foo:
         arrays: Dict[str, jnp.ndarray]
         flag: bool = jax_dataclasses.static_field()
