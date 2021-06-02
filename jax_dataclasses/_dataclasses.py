@@ -17,10 +17,11 @@ def pytree_dataclass(cls: Optional[Type] = None, **kwargs):
     PyTrees."""
 
     def wrap(cls):
-        return register_pytree_dataclass(dataclasses.dataclass(cls, **kwargs))
+        return _register_pytree_dataclass(dataclasses.dataclass(cls, **kwargs))
 
     if "frozen" in kwargs:
         assert kwargs["frozen"] is True, "Pytree dataclasses can only be frozen!"
+    kwargs["frozen"] = True
 
     if cls is None:
         return wrap
@@ -37,7 +38,7 @@ def static_field(*args, **kwargs):
     return dataclasses.field(*args, **kwargs)
 
 
-def register_pytree_dataclass(cls: Type[T]) -> Type[T]:
+def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
     """Register a dataclass as a flax-serializable pytree container.
 
     Args:
@@ -112,22 +113,8 @@ def register_pytree_dataclass(cls: Type[T]) -> Type[T]:
 
     serialization.register_serialization_state(cls, _to_state_dict, _from_state_dict)
 
+    # Custom frozen dataclass implementation
     cls.__mutability__ = _copy_and_mutate._Mutability.FROZEN  # type: ignore
-
-    # Make dataclass immutable after __init__ is called.
-    def _mark_immutable():
-        original_init = cls.__init__ if hasattr(cls, "__init__") else None
-
-        def new_init(self, *args, **kwargs):
-            # Allow mutations in __init__.
-            cls.__setattr__ = object.__setattr__
-            if original_init is not None:
-                original_init(self, *args, **kwargs)
-            cls.__setattr__ = _copy_and_mutate._new_setattr
-
-        cls.__setattr__ = _copy_and_mutate._new_setattr  # type: ignore
-        cls.__init__ = new_init  # type: ignore
-
-    _mark_immutable()
+    cls.__setattr__ = _copy_and_mutate._new_setattr  # type: ignore
 
     return cls
