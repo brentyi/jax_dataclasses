@@ -1,5 +1,5 @@
 import dataclasses
-from typing import TYPE_CHECKING, Dict, List, Optional, Type, TypeVar
+from typing import Dict, List, Optional, Type, TypeVar
 
 import jax
 from flax import serialization
@@ -12,49 +12,33 @@ T = TypeVar("T")
 FIELD_METADATA_STATIC_MARKER = "__jax_dataclasses_static_field__"
 
 
-if TYPE_CHECKING:
-    # Treat our JAX field and dataclass functions as their counterparts from the
-    # standard dataclasses library during static analysis
-    #
-    # Tools like via mypy, jedi, etc generally rely on a lot of special, hardcoded
-    # behavior for the standard dataclasses library; this lets us take advantage of all
-    # of it.
-    #
-    # Note that mypy will not follow aliases, so `from dataclasses import dataclass` is
-    # preferred over `dataclass = dataclasses.dataclass`.
-    #
-    # For the future, dataclass transforms may also be worth looking into:
-    # https://github.com/microsoft/pyright/blob/master/specs/dataclass_transforms.md
-    from dataclasses import dataclass
-    from dataclasses import field as static_field
-else:
+def pytree_dataclass(cls: Optional[Type] = None, **kwargs):
+    """Substitute for dataclasses.dataclass, which also registers dataclasses as
+    PyTrees."""
 
-    def static_field(*args, **kwargs):
-        """Substitute for dataclasses.field, which also marks a field as static."""
+    def wrap(cls):
+        return register_pytree_dataclass(dataclasses.dataclass(cls, **kwargs))
 
-        kwargs["metadata"] = kwargs.get("metadata", {})
-        kwargs["metadata"][FIELD_METADATA_STATIC_MARKER] = True
+    if "frozen" in kwargs:
+        assert kwargs["frozen"] is True, "Pytree dataclasses can only be frozen!"
 
-        return dataclasses.field(*args, **kwargs)
-
-    def dataclass(cls: Optional[Type] = None, **kwargs):
-        """Substitute for dataclasses.dataclass, which also registers dataclasses as
-        PyTrees."""
-
-        def wrap(cls):
-            return _register(dataclasses.dataclass(cls, **kwargs))
-
-        if "frozen" in kwargs:
-            assert kwargs["frozen"] is True, "Pytree dataclasses can only be frozen!"
-
-        if cls is None:
-            return wrap
-        else:
-            return wrap(cls)
+    if cls is None:
+        return wrap
+    else:
+        return wrap(cls)
 
 
-def _register(cls: Type[T]) -> Type[T]:
-    """Register a dataclass as a flax-serializable pytree.
+def static_field(*args, **kwargs):
+    """Substitute for dataclasses.field, which also marks a field as static."""
+
+    kwargs["metadata"] = kwargs.get("metadata", {})
+    kwargs["metadata"][FIELD_METADATA_STATIC_MARKER] = True
+
+    return dataclasses.field(*args, **kwargs)
+
+
+def register_pytree_dataclass(cls: Type[T]) -> Type[T]:
+    """Register a dataclass as a flax-serializable pytree container.
 
     Args:
         cls (Type[T]): Dataclass to wrap.

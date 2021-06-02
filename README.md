@@ -6,17 +6,18 @@
 [![codecov](https://codecov.io/gh/brentyi/jax_dataclasses/branch/main/graph/badge.svg?token=fFSx7CeKlW)](https://codecov.io/gh/brentyi/jax_dataclasses)
 
 `jax_dataclasses` provides a wrapper around `dataclasses.dataclass` for use in
-JAX. Features:
+JAX, which enables automatic support for:
 
-- Automatic [pytree](https://jax.readthedocs.io/en/latest/pytrees.html)
-  registration. This allows dataclasses to be used at API boundaries in JAX.
-  (necessary for function transformations, etc)
-- Support for serialization via `flax.serialization`.
-- Static analysis-friendly. Works out of the box with tools like `mypy` and
-  `jedi`.
+- [Pytree](https://jax.readthedocs.io/en/latest/pytrees.html) registration. This
+  allows dataclasses to be used at API boundaries in JAX. (necessary for
+  function transformations, JIT, etc)
+- Serialization via `flax.serialization`.
+
+Notably, `jax_dataclasses` is designed to work seamlessly with static analysis
+tools, including tools like `mypy` and `jedi`.
 
 Heavily influenced by some great existing work; see
-[Alternatives](#alternatives) for a comparison.
+[Alternatives](#alternatives) for comparisons.
 
 ### Installation
 
@@ -29,12 +30,14 @@ pip install jax_dataclasses
 `jax_dataclasses` is meant to provide a drop-in replacement for
 `dataclasses.dataclass`:
 
-- <code>jax_dataclasses.<strong>dataclass</strong></code> has the same interface
-  as `dataclasses.dataclass`, but also registers the target class as a pytree.
+- <code>jax_dataclasses.<strong>pytree_dataclass</strong></code> has the same
+  interface as `dataclasses.dataclass`, but also registers the target class as a
+  pytree container.
 - <code>jax_dataclasses.<strong>static_field</strong></code> has the same
   interface as `dataclasses.field`, but will also mark the field as static. In a
-  pytree node, static fields are treated as part of the treedef instead of as a
-  child of the node.
+  pytree node, static fields will be treated as part of the treedef instead of
+  as a child of the node; all fields that are not explicitly marked static
+  should contain arrays or child nodes.
 
 We also provide several aliases:
 `jax_dataclasses.[field, asdict, astuples, is_dataclass, replace]` are all
@@ -52,7 +55,7 @@ temporarily mutable:
 from jax import numpy as jnp
 import jax_dataclasses
 
-@jax_dataclasses.dataclass
+@jax_dataclasses.pytree_dataclass
 class Node:
   child: jnp.ndarray
 
@@ -85,14 +88,12 @@ The main differentiators of `jax_dataclasses` are:
 - **Static analysis support.** Libraries like `dataclasses` and `attrs` rely on
   tooling-specific custom plugins for static analysis, which don't exist for
   `chex` or `flax`. `tjax` has a custom mypy plugin to enable type checking, but
-  isn't supported by other tools.
-
-  - Because `@jax_dataclasses.dataclass` has the same API as
-    `@dataclasses.dataclass`, it can include pytree registration behavior at
-    runtime while being treated as the standard decorator during static
-    analysis. This means that all static checkers, language servers, and
-    autocomplete engines that support the standard `dataclasses` library should
-    work out of the box with `jax_dataclasses`.
+  isn't supported by other tools. Because `@jax_dataclasses.pytree_dataclass`
+  has the same API as `@dataclasses.dataclass`, it can include pytree
+  registration behavior at runtime while being treated as the standard decorator
+  during static analysis. This means that all static checkers, language servers,
+  and autocomplete engines that support the standard `dataclasses` library
+  should work out of the box with `jax_dataclasses`.
 
 - **Nested dataclasses.** Making replacements/modifications in deeply nested
   dataclasses is generally very frustrating. The three alternatives all
