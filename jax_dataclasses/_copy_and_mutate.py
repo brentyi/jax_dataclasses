@@ -4,6 +4,7 @@ import enum
 from typing import Any, ContextManager, TypeVar
 
 import jax
+from jax import numpy as jnp
 
 T = TypeVar("T")
 
@@ -57,6 +58,13 @@ def copy_and_mutate(obj: T, validate: bool = True) -> ContextManager[T]:
     return contextlib.contextmanager(_replace_context)(obj)
 
 
+def _unify_floats(dtype):
+    if dtype == jnp.float64:
+        return jnp.float32
+    else:
+        return dtype
+
+
 def _new_setattr(self, name: str, value: Any):
     if self.__mutability__ == _Mutability.MUTABLE:
         # Validate changes.
@@ -82,10 +90,12 @@ def _new_setattr(self, name: str, value: Any):
 
         # Check leaf dtypes.
         new_dtypes = tuple(
-            leaf.dtype for leaf in jax.tree_leaves(value) if hasattr(leaf, "dtype")
+            _unify_floats(leaf.dtype)
+            for leaf in jax.tree_leaves(value)
+            if hasattr(leaf, "dtype")
         )
         cur_dtypes = tuple(
-            leaf.dtype
+            _unify_floats(leaf.dtype)
             for leaf in jax.tree_leaves(current_value)
             if hasattr(leaf, "dtype")
         )

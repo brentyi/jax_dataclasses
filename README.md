@@ -13,11 +13,11 @@ JAX, which enables automatic support for:
   function transformations, JIT, etc)
 - Serialization via `flax.serialization`.
 
-Notably, `jax_dataclasses` is designed to work seamlessly with static analysis,
-including tools like `mypy` and `jedi`.
+Notably, `jax_dataclasses` is designed to work seamlessly with tooling that
+relies on static analysis. (`mypy`, `jedi`, etc)
 
-Heavily influenced by some great existing work; see
-[Alternatives](#alternatives) for comparisons.
+Heavily influenced by some great existing work (the obvious one being
+`flax.struct.dataclass`); see [Alternatives](#alternatives) for comparisons.
 
 ### Installation
 
@@ -86,14 +86,14 @@ this library.
 The main differentiators of `jax_dataclasses` are:
 
 - **Static analysis support.** Libraries like `dataclasses` and `attrs` rely on
-  tooling-specific custom plugins for static analysis, which don't exist for
-  `chex` or `flax`. `tjax` has a custom mypy plugin to enable type checking, but
-  isn't supported by other tools. Because `@jax_dataclasses.pytree_dataclass`
-  has the same API as `@dataclasses.dataclass`, it can include pytree
-  registration behavior at runtime while being treated as the standard decorator
-  during static analysis. This means that all static checkers, language servers,
-  and autocomplete engines that support the standard `dataclasses` library
-  should work out of the box with `jax_dataclasses`.
+  tooling-specific plugins for static analysis, which don't exist for `chex` or
+  `flax`. `tjax` has a custom mypy plugin to enable type checking, but isn't
+  supported by other tools. Because `@jax_dataclasses.pytree_dataclass` has the
+  same API as `@dataclasses.dataclass`, it can include pytree registration
+  behavior at runtime while being treated as the standard decorator during
+  static analysis. This means that all static checkers, language servers, and
+  autocomplete engines that support the standard `dataclasses` library should
+  work out of the box with `jax_dataclasses`.
 
 - **Nested dataclasses.** Making replacements/modifications in deeply nested
   dataclasses is generally very frustrating. The three alternatives all
