@@ -83,3 +83,20 @@ def test_static_field():
 
     _assert_pytree_allclose(jitted_op(A(5.0, 3.0, True)), 8.0)
     _assert_pytree_allclose(jitted_op(A(5.0, 3.0, False)), 2.0)
+
+
+def test_no_init():
+    @jax_dataclasses.pytree_dataclass
+    class A:
+        field1: float
+        field2: float = jax_dataclasses.field()
+        field3: bool = jax_dataclasses.static_field(init=False)
+
+        def __post_init__(self):
+            object.__setattr__(self, "field3", False)
+
+    @jax.jit
+    def construct_A(a: float) -> A:
+        return A(field1=a, field2=a * 2.0)
+
+    assert construct_A(5.0).field3 is False

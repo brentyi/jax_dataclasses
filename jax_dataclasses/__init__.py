@@ -1,4 +1,4 @@
-from dataclasses import asdict, astuple, field, is_dataclass, replace
+from dataclasses import asdict, astuple, field, fields, is_dataclass, replace
 from typing import TYPE_CHECKING
 
 from ._copy_and_mutate import copy_and_mutate
@@ -25,6 +25,7 @@ __all__ = [
     "asdict",
     "astuple",
     "field",
+    "fields",
     "is_dataclass",
     "replace",
     "copy_and_mutate",

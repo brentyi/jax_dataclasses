@@ -50,13 +50,13 @@ def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
     # Determine which fields are static and part of the treedef, and which should be
     # registered as child nodes.
     child_node_field_names: List[str] = []
-    static_fields: List[dataclasses.Field] = []
+    static_field_names: List[str] = []
+
     for field in dataclasses.fields(cls):
-        if (
-            FIELD_METADATA_STATIC_MARKER in field.metadata
-            and field.metadata[FIELD_METADATA_STATIC_MARKER]
-        ):
-            static_fields.append(field)
+        if not field.init:
+            continue
+        if field.metadata.get(FIELD_METADATA_STATIC_MARKER, False):
+            static_field_names.append(field.name)
         else:
             child_node_field_names.append(field.name)
 
@@ -64,21 +64,14 @@ def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
     # of fields.
     def _flatten(obj):
         children = tuple(getattr(obj, key) for key in child_node_field_names)
-        treedef = tuple(getattr(obj, field.name) for field in static_fields)
+        treedef = tuple(getattr(obj, key) for key in static_field_names)
         return children, treedef
 
     def _unflatten(treedef, children):
-        static_field_names = [field.name for field in static_fields]
-        return dataclasses.replace(
-            cls.__new__(cls),
+        return cls(
             **dict(zip(child_node_field_names, children)),
-            **dict(zip(static_field_names, treedef)),
+            **{key: tdef for key, tdef in zip(static_field_names, treedef)},
         )
-        # Alternative:
-        # return cls(
-        #     **dict(zip(child_node_field_names, children)),
-        #     **{field.name: tdef for field, tdef in zip(static_fields, treedef)},
-        # )
 
     jax.tree_util.register_pytree_node(cls, _flatten, _unflatten)
 
