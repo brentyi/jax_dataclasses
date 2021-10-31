@@ -12,6 +12,9 @@ JAX, which enables automatic support for:
   allows dataclasses to be used at API boundaries in JAX. (necessary for
   function transformations, JIT, etc)
 - Serialization via `flax.serialization`.
+- Static analysis with tools like `mypy`, `jedi`, `pyright`, etc. (including for
+  constructors)
+- (Optional) Shape and data-type annotations, runtime checks.
 
 Notably, `jax_dataclasses` is designed to work seamlessly with tooling that
 relies on static analysis. (`mypy`, `jedi`, etc)
@@ -74,6 +77,103 @@ print(obj)
 print(obj_updated)
 ```
 
+### Shape and type annotations
+
+As an optional feature, we introduce
+<code>jax_dataclasses.<strong>ArrayAnnotationMixin</strong></code> to enable
+automatic shape and data-type validation.
+
+We can start by importing the `Annotated` type:
+
+```python
+# Python >=3.9
+from typing import Annotated
+
+# Backport
+from typing_extensions import Annotated
+```
+
+We can then add shape annotations:
+
+```python
+@jax_dataclasses.pytree_dataclass
+class MnistStruct(jax_dataclasses.ArrayAnnotationMixin):
+    image: Annotated[
+        jnp.ndarray,
+        (28, 28),
+    ]
+    label: Annotated[
+        jnp.ndarray,
+        (10,),
+    ]
+```
+
+Or data-type annotations:
+
+```python
+    image: Annotated[
+        jnp.ndarray,
+        jnp.float32,
+    ]
+    label: Annotated[
+        jnp.ndarray,
+        jnp.integer,
+    ]
+```
+
+Or both (note that annotations are order-invariant):
+
+```python
+    image: Annotated[
+        jnp.ndarray,
+        (28, 28),
+        jnp.float32,
+    ]
+    label: Annotated[
+        jnp.ndarray,
+        (10,),
+        jnp.integer,
+    ]
+```
+
+Then, assuming we've constrained both the shape and data-type, we get array
+validation on instantiation and access to a `.get_batch_axes()` method for
+grabbing any common prefixes in contained array shapes:
+
+```python
+# OK
+struct = MnistStruct(
+  image=onp.zeros((28, 28), dtype=onp.float32),
+  label=onp.zeros((10,), dtype=onp.uint8),
+)
+print(struct.get_batch_axes()) # Prints ()
+
+# OK
+struct = MnistStruct(
+  image=onp.zeros((32, 28, 28), dtype=onp.float32),
+  label=onp.zeros((32, 10), dtype=onp.uint8),
+)
+print(struct.get_batch_axes()) # Prints (32,)
+
+# AssertionError on instantiation because of type mismatch
+MnistStruct(
+  image=onp.zeros((28, 28), dtype=onp.float32),
+  label=onp.zeros((10,), dtype=onp.float32),
+)
+
+# AssertionError on instantiation because of shape mismatch
+MnistStruct(
+  image=onp.zeros((28, 28), dtype=onp.float32),
+  label=onp.zeros((5,), dtype=onp.uint8),
+)
+
+# AssertionError on instantiation because of batch axis mismatch
+struct = MnistStruct(
+  image=onp.zeros((64, 28, 28), dtype=onp.float32),
+  label=onp.zeros((32, 10), dtype=onp.uint8),
+)
+```
+
 ### Alternatives
 
 A few other solutions exist for automatically integrating dataclass-style
@@ -85,22 +185,23 @@ this library.
 
 The main differentiators of `jax_dataclasses` are:
 
-- **Static analysis support.** Libraries like `dataclasses` and `attrs` rely on
-  tooling-specific plugins for static analysis, which don't exist for `chex` or
-  `flax`. `tjax` has a custom mypy plugin to enable type checking, but isn't
-  supported by other tools. Because `@jax_dataclasses.pytree_dataclass` has the
-  same API as `@dataclasses.dataclass`, it can include pytree registration
-  behavior at runtime while being treated as the standard decorator during
-  static analysis. This means that all static checkers, language servers, and
-  autocomplete engines that support the standard `dataclasses` library should
-  work out of the box with `jax_dataclasses`.
+- **Static analysis support.** `tjax` has a custom mypy plugin to enable type
+  checking, but isn't supported by other tools. `flax.struct` implements the
+  [`dataclass_transform`](https://github.com/microsoft/pyright/blob/main/specs/dataclass_transforms.md)
+  spec proposed by pyright, but isn't supported by other tools. Because
+  `@jax_dataclasses.pytree_dataclass` has the same API as
+  `@dataclasses.dataclass`, it can include pytree registration behavior at
+  runtime while being treated as the standard decorator during static analysis.
+  This means that all static checkers, language servers, and autocomplete
+  engines that support the standard `dataclasses` library should work out of the
+  box with `jax_dataclasses`.
 
 - **Nested dataclasses.** Making replacements/modifications in deeply nested
-  dataclasses is generally very frustrating. The three alternatives all
-  introduce a `.replace(self, ...)` method to dataclasses that's a bit more
-  convenient than the traditional `dataclasses.replace(obj, ...)` API for
-  shallow changes, but still becomes really cumbersome to use when dataclasses
-  are nested. `jax_dataclasses.copy_and_mutate()` is introduced to address this.
+  dataclasses can be really frustrating. The three alternatives all introduce a
+  `.replace(self, ...)` method to dataclasses that's a bit more convenient than
+  the traditional `dataclasses.replace(obj, ...)` API for shallow changes, but
+  still becomes really cumbersome to use when dataclasses are nested.
+  `jax_dataclasses.copy_and_mutate()` is introduced to address this.
 
 - **Static field support.** Parameters that should not be traced in JAX should
   be marked as static. This is supported in `flax`, `tjax`, and
@@ -109,6 +210,8 @@ The main differentiators of `jax_dataclasses` are:
 - **Serialization.** When working with `flax`, being able to serialize
   dataclasses is really handy. This is supported in `flax.struct` (naturally)
   and `jax_dataclasses`, but not `chex` or `tjax`.
+
+- **Shape and type annotations.** See above.
 
 ### Misc
 

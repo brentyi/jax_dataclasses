@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 else:
     from ._dataclasses import pytree_dataclass, static_field
 
+from ._array_annotations import ArrayAnnotationMixin
+
 __all__ = [
     "asdict",
     "astuple",
@@ -31,4 +33,5 @@ __all__ = [
     "copy_and_mutate",
     "pytree_dataclass",
     "static_field",
+    "ArrayAnnotationMixin",
 ]

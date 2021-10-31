@@ -36,7 +36,7 @@ def copy_and_mutate(obj: T, validate: bool = True) -> ContextManager[T]:
     contained dataclasses. Optionally validates that treedefs, array shapes, and dtypes
     are not changed."""
 
-    # Inner function helps with static typing
+    # Inner function helps with static typing!
     def _replace_context(obj: T):
         # Make a copy of the input object.
         obj_copy = jax.tree_map(lambda leaf: leaf, obj)
