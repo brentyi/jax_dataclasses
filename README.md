@@ -81,7 +81,10 @@ print(obj_updated)
 
 As an optional feature, we introduce
 <code>jax_dataclasses.<strong>ArrayAnnotationMixin</strong></code> to enable
-automatic shape and data-type validation.
+automatic shape and data-type validation. The result: content validation on
+instantiation and access to a `.get_batch_axes()` method for grabbing any common
+prefixes in contained array shapes.
+
 
 We can start by importing the `Annotated` type:
 
@@ -136,9 +139,7 @@ Or both (note that annotations are order-invariant):
     ]
 ```
 
-Then, assuming we've constrained both the shape and data-type, we get array
-validation on instantiation and access to a `.get_batch_axes()` method for
-grabbing any common prefixes in contained array shapes:
+Then, assuming we've constrained both the shape and data-type:
 
 ```python
 # OK
