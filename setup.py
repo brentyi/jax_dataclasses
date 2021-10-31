@@ -14,12 +14,11 @@ setup(
     license="MIT",
     packages=find_packages(),
     package_data={"jax_dataclasses": ["py.typed"]},
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=[
         "flax",
         "jax",
         "jaxlib",
-        "dataclasses; python_version < '3.7.0'",
     ],
     extras_require={
         "testing": [
@@ -30,7 +29,6 @@ setup(
         ]
     },
     classifiers=[
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",

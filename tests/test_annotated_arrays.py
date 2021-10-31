@@ -133,3 +133,12 @@ def test_nested():
                 label=onp.zeros((7, 10), dtype=onp.float32),
             ),
         )
+
+
+def test_scalar():
+    @pytree_dataclass
+    class ScalarContainer(ArrayAnnotationMixin):
+        scalar: Annotated[jnp.ndarray, ()]  # () => scalar shape
+
+    assert ScalarContainer(scalar=5.0).get_batch_axes() == ()
+    assert ScalarContainer(scalar=onp.zeros((5,))).get_batch_axes() == (5,)
