@@ -5,6 +5,20 @@
 ![lint](https://github.com/brentyi/jax_dataclasses/workflows/lint/badge.svg)
 [![codecov](https://codecov.io/gh/brentyi/jax_dataclasses/branch/main/graph/badge.svg?token=fFSx7CeKlW)](https://codecov.io/gh/brentyi/jax_dataclasses)
 
+<!-- vim-markdown-toc GFM -->
+
+* [Overview](#overview)
+* [Installation](#installation)
+* [Core interface](#core-interface)
+* [Mutations](#mutations)
+* [Shape and data-type annotations](#shape-and-data-type-annotations)
+* [Alternatives](#alternatives)
+* [Misc](#misc)
+
+<!-- vim-markdown-toc -->
+
+### Overview
+
 `jax_dataclasses` provides a wrapper around `dataclasses.dataclass` for use in
 JAX, which enables automatic support for:
 
@@ -14,15 +28,15 @@ JAX, which enables automatic support for:
 - Serialization via `flax.serialization`.
 - Static analysis with tools like `mypy`, `jedi`, `pyright`, etc. (including for
   constructors)
-- (Optional) Shape and data-type annotations, runtime checks.
-
-Notably, `jax_dataclasses` is designed to work seamlessly with tooling that
-relies on static analysis. (`mypy`, `jedi`, etc)
+- Optional shape and data-type annotations, which are checked at runtime.
 
 Heavily influenced by some great existing work (the obvious one being
 `flax.struct.dataclass`); see [Alternatives](#alternatives) for comparisons.
 
 ### Installation
+
+The latest version of `jax_dataclasses` requires Python>=3.7. Python 3.6 will
+work as well, but is missing support for shape annotations.
 
 ```bash
 pip install jax_dataclasses
@@ -50,9 +64,9 @@ identical to their counterparts in the standard dataclasses library.
 
 All dataclasses are automatically marked as frozen and thus immutable (even when
 no `frozen=` parameter is passed in). To make changes to nested structures
-easier, we provide an interface that will (a) make a copy of a pytree and (b)
-return a context in which any of that copy's contained dataclasses are
-temporarily mutable:
+easier, <code>jax_dataclasses.<strong>copy_and_mutate</strong></code> (a) makes
+a copy of a pytree and (b) returns a context in which any of that copy's
+contained dataclasses are temporarily mutable:
 
 ```python
 from jax import numpy as jnp
@@ -77,15 +91,15 @@ print(obj)
 print(obj_updated)
 ```
 
-### Shape and type annotations
+### Shape and data-type annotations
 
-As an optional feature, we introduce
-<code>jax_dataclasses.<strong>EnforceAnnotationsMixin</strong></code> to enable
-automatic shape and data-type validation. The result: content validation on
-instantiation and access to a `.get_batch_axes()` method for grabbing any common
-prefixes in contained array shapes.
+Subclassing from
+<code>jax_dataclasses.<strong>EnforcedAnnotationsMixin</strong></code> enables
+automatic shape and data-type validation. Arrays contained within dataclasses
+are validated on instantiation and a **`.get_batch_axes()`** method is exposed for
+grabbing any common prefixes the shapes of contained arrays.
 
-We can start by importing the `Annotated` type:
+We can start by importing the standard `Annotated` type:
 
 ```python
 # Python >=3.9
@@ -99,7 +113,7 @@ We can then add shape annotations:
 
 ```python
 @jax_dataclasses.pytree_dataclass
-class MnistStruct(jax_dataclasses.EnforceAnnotationsMixin):
+class MnistStruct(jax_dataclasses.EnforcedAnnotationsMixin):
     image: Annotated[
         jnp.ndarray,
         (28, 28),
@@ -158,7 +172,7 @@ print(struct.get_batch_axes()) # Prints (32,)
 # AssertionError on instantiation because of type mismatch
 MnistStruct(
   image=onp.zeros((28, 28), dtype=onp.float32),
-  label=onp.zeros((10,), dtype=onp.float32),
+  label=onp.zeros((10,), dtype=onp.float32), # Not an integer type!
 )
 
 # AssertionError on instantiation because of shape mismatch
@@ -217,4 +231,4 @@ The main differentiators of `jax_dataclasses` are:
 
 This code was originally written for and factored out of
 [jaxfg](http://github.com/brentyi/jaxfg), where
-[Nick Heppert](https://github.com/SuperN1ck) provided valuable feedback!
+[Nick Heppert](https://github.com/SuperN1ck) provided valuable feedback.

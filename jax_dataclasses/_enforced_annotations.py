@@ -10,7 +10,7 @@ def _is_shape(shape: Any) -> bool:
     return isinstance(shape, tuple) and all(map(lambda x: isinstance(x, int), shape))
 
 
-# Some dtype superclasses that result in a warning when we ttempt a jnp.dtype() on them.
+# Some dtype superclasses that result in a warning when we attempt a jnp.dtype() on them.
 _dtype_set = {jnp.integer, jnp.signedinteger, jnp.floating, jnp.inexact}
 
 
