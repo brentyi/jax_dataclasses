@@ -1,15 +1,16 @@
 """Tests for optional shape and type annotation features."""
 
+import jax
 import numpy as onp
 import pytest
 from jax import numpy as jnp
 from typing_extensions import Annotated
 
-from jax_dataclasses import ArrayAnnotationMixin, pytree_dataclass
+from jax_dataclasses import EnforcedAnnotationsMixin, pytree_dataclass
 
 
 @pytree_dataclass
-class MnistStruct(ArrayAnnotationMixin):
+class MnistStruct(EnforcedAnnotationsMixin):
     image: Annotated[
         jnp.ndarray,
         (28, 28),
@@ -23,7 +24,7 @@ class MnistStruct(ArrayAnnotationMixin):
 
 
 @pytree_dataclass
-class MnistStructPartial(ArrayAnnotationMixin):
+class MnistStructPartial(EnforcedAnnotationsMixin):
     image_shape_only: Annotated[
         jnp.ndarray,
         (28, 28),
@@ -98,7 +99,7 @@ def test_dtype_mismatch():
 
 def test_nested():
     @pytree_dataclass
-    class Parent(ArrayAnnotationMixin):
+    class Parent(EnforcedAnnotationsMixin):
         x: Annotated[jnp.integer, ()]
         child: MnistStruct
 
@@ -137,8 +138,46 @@ def test_nested():
 
 def test_scalar():
     @pytree_dataclass
-    class ScalarContainer(ArrayAnnotationMixin):
+    class ScalarContainer(EnforcedAnnotationsMixin):
         scalar: Annotated[jnp.ndarray, ()]  # () => scalar shape
 
     assert ScalarContainer(scalar=5.0).get_batch_axes() == ()
     assert ScalarContainer(scalar=onp.zeros((5,))).get_batch_axes() == (5,)
+
+
+def test_grad():
+    @pytree_dataclass
+    class Vector3(EnforcedAnnotationsMixin):
+        parameters: Annotated[jnp.ndarray, (3,)]
+
+    # Make sure we can compute gradients wrt annotated dataclasses.
+    grad = jax.grad(lambda x: jnp.sum(x.parameters))(Vector3(onp.zeros(3)))
+    onp.testing.assert_allclose(grad.parameters, onp.ones((3,)))
+
+
+# This test currently breaks -- shape assertions on instantiation makes it impossible to
+# compute some more complex Jacobians.
+#
+# Some options for fixing: adding some way to temporarily disable validation, or moving
+# away from validation on instantiation to validation only when `.get_batch_axes()` is
+# called. Either should be fairly straightforward, but this is fairly niche, produces (in my
+# opinion) unintuitive Pytree structures, and is easy to work around, so marking as a
+# no-fix for now.
+#
+# def test_jacobians():
+#     @pytree_dataclass
+#     class Vector3(ArrayAnnotationMixin):
+#         parameters: Annotated[jnp.ndarray, (3,)]
+#
+#     @pytree_dataclass
+#     class Vector4(ArrayAnnotationMixin):
+#         parameters: Annotated[jnp.ndarray, (4,)]
+#
+#     def vec4_from_vec3(vec3: Vector3) -> Vector4:
+#         return Vector4(onp.zeros((4,)))
+#
+#     def vec3_from_vec4(vec4: Vector4) -> Vector3:
+#         return Vector3(onp.zeros((3,)))
+#
+#     jac = jax.jacfwd(vec4_from_vec3)(Vector3(onp.zeros((3,))))
+#     jac = jax.jacfwd(vec3_from_vec4)(Vector4(onp.zeros((4,))))

@@ -26,9 +26,9 @@ def _is_dtype(dtype: Any) -> bool:
         return False
 
 
-class ArrayAnnotationMixin:
-    """Base class for dataclasses containing arrays that are annotated with expected
-    shapes or types that can be checked at runtime.
+class EnforcedAnnotationsMixin:
+    """Mixin for dataclasses containing arrays that are annotated with expected shapes
+    or types that can be checked at runtime.
 
     Runs input validation on instantiation and provides a single helper,
     `validate_and_get_batch_axes()`, that returns common batch axes.
@@ -81,7 +81,7 @@ class ArrayAnnotationMixin:
             type_hint = hint_from_name[field.name]
             value = self.__getattribute__(field.name)
 
-            if isinstance(value, ArrayAnnotationMixin):
+            if isinstance(value, EnforcedAnnotationsMixin):
                 child_batch_axes = getattr(value, "__batch_axes__")
                 if child_batch_axes is not None:
                     child_batch_axes_list.append(child_batch_axes)
@@ -133,11 +133,12 @@ class ArrayAnnotationMixin:
 
         # Check child batch axes: any batch axes present in the parent should be present
         # in the children as well.
-        for child_batch_axes in child_batch_axes_list:
-            assert (
-                len(child_batch_axes) >= len(batch_axes)
-                and child_batch_axes[: len(batch_axes)] == batch_axes
-            ), f"Child batch axes {child_batch_axes} don't match parent axes {batch_axes}."
+        if batch_axes is not None:
+            for child_batch_axes in child_batch_axes_list:
+                assert (
+                    len(child_batch_axes) >= len(batch_axes)
+                    and child_batch_axes[: len(batch_axes)] == batch_axes
+                ), f"Child batch axes {child_batch_axes} don't match parent axes {batch_axes}."
 
         object.__setattr__(self, "__batch_axes__", batch_axes)
 

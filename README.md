@@ -80,11 +80,10 @@ print(obj_updated)
 ### Shape and type annotations
 
 As an optional feature, we introduce
-<code>jax_dataclasses.<strong>ArrayAnnotationMixin</strong></code> to enable
+<code>jax_dataclasses.<strong>EnforceAnnotationsMixin</strong></code> to enable
 automatic shape and data-type validation. The result: content validation on
 instantiation and access to a `.get_batch_axes()` method for grabbing any common
 prefixes in contained array shapes.
-
 
 We can start by importing the `Annotated` type:
 
@@ -100,7 +99,7 @@ We can then add shape annotations:
 
 ```python
 @jax_dataclasses.pytree_dataclass
-class MnistStruct(jax_dataclasses.ArrayAnnotationMixin):
+class MnistStruct(jax_dataclasses.EnforceAnnotationsMixin):
     image: Annotated[
         jnp.ndarray,
         (28, 28),
