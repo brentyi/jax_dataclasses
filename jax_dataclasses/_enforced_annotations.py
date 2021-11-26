@@ -31,7 +31,7 @@ class EnforcedAnnotationsMixin:
     or types that can be checked at runtime.
 
     Runs input validation on instantiation and provides a single helper,
-    `validate_and_get_batch_axes()`, that returns common batch axes.
+    `get_batch_axes()`, that returns common batch axes.
 
     First, we import `Annotated`:
 
