@@ -106,7 +106,7 @@ class EnforcedAnnotationsMixin:
             # Shape checks.
             metadata_shape = tuple(filter(_is_shape, metadata))
             shape: Optional[Tuple[int, ...]] = None
-            if isinstance(value, float):
+            if isinstance(value, (int, float)):
                 shape = ()
             elif hasattr(value, "shape"):
                 shape = value.shape

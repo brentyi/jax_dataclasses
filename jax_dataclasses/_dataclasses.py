@@ -2,7 +2,13 @@ import dataclasses
 from typing import Dict, List, Optional, Type, TypeVar
 
 import jax
-from flax import serialization
+
+try:
+    # Attempt to import flax for serialization. The exception handling lets us drop
+    # flax from our dependencies.
+    from flax import serialization
+except ImportError:
+    serialization = None  # type: ignore
 
 from . import _copy_and_mutate
 
@@ -76,35 +82,39 @@ def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
     jax.tree_util.register_pytree_node(cls, _flatten, _unflatten)
 
     # Serialization: this is mostly copied from `flax.struct.dataclass`.
-    def _to_state_dict(x: T):
-        state_dict = {
-            name: serialization.to_state_dict(getattr(x, name))
-            for name in child_node_field_names
-        }
-        return state_dict
+    if serialization is not None:
 
-    def _from_state_dict(x: T, state: Dict):
-        # Copy the state so we can pop the restored fields.
-        state = state.copy()
-        updates = {}
-        for name in child_node_field_names:
-            if name not in state:
+        def _to_state_dict(x: T):
+            state_dict = {
+                name: serialization.to_state_dict(getattr(x, name))
+                for name in child_node_field_names
+            }
+            return state_dict
+
+        def _from_state_dict(x: T, state: Dict):
+            # Copy the state so we can pop the restored fields.
+            state = state.copy()
+            updates = {}
+            for name in child_node_field_names:
+                if name not in state:
+                    raise ValueError(
+                        f"Missing field {name} in state dict while restoring"
+                        f" an instance of {cls.__name__}"
+                    )
+                value = getattr(x, name)
+                value_state = state.pop(name)
+                updates[name] = serialization.from_state_dict(value, value_state)
+            if state:
+                names = ",".join(state.keys())
                 raise ValueError(
-                    f"Missing field {name} in state dict while restoring"
-                    f" an instance of {cls.__name__}"
+                    f'Unknown field(s) "{names}" in state dict while'
+                    f" restoring an instance of {cls.__name__}"
                 )
-            value = getattr(x, name)
-            value_state = state.pop(name)
-            updates[name] = serialization.from_state_dict(value, value_state)
-        if state:
-            names = ",".join(state.keys())
-            raise ValueError(
-                f'Unknown field(s) "{names}" in state dict while'
-                f" restoring an instance of {cls.__name__}"
-            )
-        return dataclasses.replace(x, **updates)
+            return dataclasses.replace(x, **updates)
 
-    serialization.register_serialization_state(cls, _to_state_dict, _from_state_dict)
+        serialization.register_serialization_state(
+            cls, _to_state_dict, _from_state_dict
+        )
 
     # Custom frozen dataclass implementation
     cls.__mutability__ = _copy_and_mutate._Mutability.FROZEN  # type: ignore

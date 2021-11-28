@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 setup(
     name="jax_dataclasses",
-    version="1.2.0",
+    version="1.2.1",
     description="Dataclasses + JAX",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -16,16 +16,14 @@ setup(
     package_data={"jax_dataclasses": ["py.typed"]},
     python_requires=">=3.7",
     install_requires=[
-        "flax",
         "jax",
         "jaxlib",
     ],
     extras_require={
         "testing": [
+            "flax",  # Used for serialization tests.
             "pytest",
             "pytest-cov",
-            # "hypothesis",
-            # "hypothesis[numpy]",
         ]
     },
     classifiers=[
