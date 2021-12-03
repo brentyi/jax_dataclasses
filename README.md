@@ -97,7 +97,7 @@ Subclassing from
 <code>jax_dataclasses.<strong>EnforcedAnnotationsMixin</strong></code> enables
 automatic shape and data-type validation. Arrays contained within dataclasses
 are validated on instantiation and a **`.get_batch_axes()`** method is exposed for
-grabbing any common prefixes the shapes of contained arrays.
+grabbing any common prefixes to the shapes of contained arrays.
 
 We can start by importing the standard `Annotated` type:
 
