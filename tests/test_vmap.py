@@ -3,11 +3,11 @@ import pytest
 from jax import numpy as jnp
 from typing_extensions import Annotated
 
-import jax_dataclasses
+import jax_dataclasses as jdc
 
 
-@jax_dataclasses.pytree_dataclass
-class Node(jax_dataclasses.EnforcedAnnotationsMixin):
+@jdc.pytree_dataclass
+class Node(jdc.EnforcedAnnotationsMixin):
     a: Annotated[jnp.ndarray, (5,), jnp.floating]
 
 

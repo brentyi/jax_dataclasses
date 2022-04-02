@@ -1,4 +1,4 @@
-"""Tests for standard jax_dataclasses.dataclass features. Initialization, flattening, unflattening,
+"""Tests for standard jdc.pytree_dataclass features. Initialization, flattening, unflattening,
 static fields, etc.
 """
 
@@ -6,7 +6,7 @@ import jax
 import numpy as onp
 import pytest
 
-import jax_dataclasses
+import jax_dataclasses as jdc
 
 
 def _assert_pytree_allclose(x, y):
@@ -16,7 +16,7 @@ def _assert_pytree_allclose(x, y):
 
 
 def test_init():
-    @jax_dataclasses.pytree_dataclass
+    @jdc.pytree_dataclass
     class A:
         field1: int
         field2: int
@@ -29,7 +29,7 @@ def test_init():
 
 
 def test_default_arg():
-    @jax_dataclasses.pytree_dataclass
+    @jdc.pytree_dataclass
     class A:
         field1: int
         field2: int = 3
@@ -38,7 +38,7 @@ def test_default_arg():
 
 
 def test_flatten():
-    @jax_dataclasses.pytree_dataclass
+    @jdc.pytree_dataclass
     class A:
         field1: float
         field2: float
@@ -51,7 +51,7 @@ def test_flatten():
 
 
 def test_unflatten():
-    @jax_dataclasses.pytree_dataclass
+    @jdc.pytree_dataclass
     class A:
         field1: float
         field2: float
@@ -64,11 +64,11 @@ def test_unflatten():
 
 
 def test_static_field():
-    @jax_dataclasses.pytree_dataclass
+    @jdc.pytree_dataclass
     class A:
         field1: float
-        field2: float = jax_dataclasses.field()
-        field3: bool = jax_dataclasses.static_field()
+        field2: float = jdc.field()
+        field3: bool = jdc.static_field()
 
     @jax.jit
     def jitted_op(obj: A) -> float:
@@ -86,11 +86,11 @@ def test_static_field():
 
 
 def test_no_init():
-    @jax_dataclasses.pytree_dataclass
+    @jdc.pytree_dataclass
     class A:
         field1: float
-        field2: float = jax_dataclasses.field()
-        field3: bool = jax_dataclasses.static_field(init=False)
+        field2: float = jdc.field()
+        field3: bool = jdc.static_field(init=False)
 
         def __post_init__(self):
             object.__setattr__(self, "field3", False)

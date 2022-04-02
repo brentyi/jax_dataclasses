@@ -6,11 +6,11 @@ import pytest
 from jax import numpy as jnp
 from typing_extensions import Annotated
 
-from jax_dataclasses import EnforcedAnnotationsMixin, pytree_dataclass
+import jax_dataclasses as jdc
 
 
-@pytree_dataclass
-class MnistStruct(EnforcedAnnotationsMixin):
+@jdc.pytree_dataclass
+class MnistStruct(jdc.EnforcedAnnotationsMixin):
     image: Annotated[
         jnp.ndarray,
         (28, 28),
@@ -23,8 +23,8 @@ class MnistStruct(EnforcedAnnotationsMixin):
     ]
 
 
-@pytree_dataclass
-class MnistStructPartial(EnforcedAnnotationsMixin):
+@jdc.pytree_dataclass
+class MnistStructPartial(jdc.EnforcedAnnotationsMixin):
     image_shape_only: Annotated[
         jnp.ndarray,
         (28, 28),
@@ -98,22 +98,19 @@ def test_dtype_mismatch():
 
 
 def test_nested():
-    @pytree_dataclass
-    class Parent(EnforcedAnnotationsMixin):
+    @jdc.pytree_dataclass
+    class Parent(jdc.EnforcedAnnotationsMixin):
         x: Annotated[jnp.integer, ()]
         child: MnistStruct
 
     # OK
-    assert (
-        Parent(
-            x=onp.zeros((7,), dtype=onp.float32),
-            child=MnistStruct(
-                image=onp.zeros((7, 28, 28), dtype=onp.float32),
-                label=onp.zeros((7, 10), dtype=onp.uint8),
-            ),
-        ).get_batch_axes()
-        == (7,)
-    )
+    assert Parent(
+        x=onp.zeros((7,), dtype=onp.float32),
+        child=MnistStruct(
+            image=onp.zeros((7, 28, 28), dtype=onp.float32),
+            label=onp.zeros((7, 10), dtype=onp.uint8),
+        ),
+    ).get_batch_axes() == (7,)
 
     # Batch axis mismatch
     with pytest.raises(AssertionError):
@@ -137,8 +134,8 @@ def test_nested():
 
 
 def test_scalar():
-    @pytree_dataclass
-    class ScalarContainer(EnforcedAnnotationsMixin):
+    @jdc.pytree_dataclass
+    class ScalarContainer(jdc.EnforcedAnnotationsMixin):
         scalar: Annotated[jnp.ndarray, ()]  # () => scalar shape
 
     assert ScalarContainer(scalar=5.0).get_batch_axes() == ()
@@ -146,8 +143,8 @@ def test_scalar():
 
 
 def test_grad():
-    @pytree_dataclass
-    class Vector3(EnforcedAnnotationsMixin):
+    @jdc.pytree_dataclass
+    class Vector3(jdc.EnforcedAnnotationsMixin):
         parameters: Annotated[jnp.ndarray, (3,)]
 
     # Make sure we can compute gradients wrt annotated dataclasses.
@@ -165,11 +162,11 @@ def test_grad():
 # no-fix for now.
 #
 # def test_jacobians():
-#     @pytree_dataclass
+#     @jdc.pytree_dataclass
 #     class Vector3(ArrayAnnotationMixin):
 #         parameters: Annotated[jnp.ndarray, (3,)]
 #
-#     @pytree_dataclass
+#     @jdc.pytree_dataclass
 #     class Vector4(ArrayAnnotationMixin):
 #         parameters: Annotated[jnp.ndarray, (4,)]
 #

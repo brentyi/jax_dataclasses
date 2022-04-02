@@ -5,16 +5,16 @@ import numpy as onp
 import pytest
 from jax import numpy as jnp
 
-import jax_dataclasses
+import jax_dataclasses as jdc
 
 
 def test_copy_and_mutate():
     # frozen=True should do nothing
-    @jax_dataclasses.pytree_dataclass(frozen=True)
+    @jdc.pytree_dataclass(frozen=True)
     class Foo:
         array: jnp.ndarray
 
-    @jax_dataclasses.pytree_dataclass
+    @jdc.pytree_dataclass
     class Bar:
         children: List[Foo]
         array: jnp.ndarray
@@ -32,7 +32,7 @@ def test_copy_and_mutate():
 
     # But we can use a context that copies a dataclass and temporarily makes the copy
     # mutable:
-    with jax_dataclasses.copy_and_mutate(obj) as obj:
+    with jdc.copy_and_mutate(obj) as obj:
         # Updates can then very easily be applied!
         obj.array = onp.zeros(3)
         obj.children[0].array = onp.ones(3)
@@ -46,7 +46,7 @@ def test_copy_and_mutate():
             obj.children[0].array = onp.ones(3, dtype=onp.int32)
 
     # Validation can also be disabled
-    with jax_dataclasses.copy_and_mutate(obj, validate=False) as obj:
+    with jdc.copy_and_mutate(obj, validate=False) as obj:
         obj.children[0].array = onp.ones(1)
         obj.children[0].array = onp.ones(3)
 
@@ -62,10 +62,10 @@ def test_copy_and_mutate():
 
 
 def test_copy_and_mutate_static():
-    @jax_dataclasses.pytree_dataclass
+    @jdc.pytree_dataclass
     class Foo:
         arrays: Dict[str, jnp.ndarray]
-        flag: bool = jax_dataclasses.static_field()
+        flag: bool = jdc.static_field()
 
     obj = Foo(arrays={"x": onp.ones(3)}, flag=False)
 
@@ -76,7 +76,7 @@ def test_copy_and_mutate_static():
     assert not obj.flag
 
     # But can be copied and mutated in a special context
-    with jax_dataclasses.copy_and_mutate(obj) as obj_updated:
+    with jdc.copy_and_mutate(obj) as obj_updated:
         obj_updated.flag = True
 
     assert not obj.flag

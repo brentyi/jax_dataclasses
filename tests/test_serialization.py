@@ -5,7 +5,7 @@ import flax
 import jax
 import numpy as onp
 
-import jax_dataclasses
+import jax_dataclasses as jdc
 
 
 def _assert_pytree_allclose(x, y):
@@ -15,11 +15,11 @@ def _assert_pytree_allclose(x, y):
 
 
 def test_serialization():
-    @jax_dataclasses.pytree_dataclass
+    @jdc.pytree_dataclass
     class A:
         field1: int
         field2: int
-        field3: bool = jax_dataclasses.static_field()
+        field3: bool = jdc.static_field()
 
     obj = A(field1=5, field2=3, field3=True)
 
