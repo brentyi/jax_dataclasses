@@ -15,20 +15,25 @@ class _Mutability(enum.Enum):
     MUTABLE_NO_VALIDATION = enum.auto()
 
 
-def _mark_mutable(obj: Any, mutable: _Mutability) -> None:
+def _mark_mutable(obj: Any, mutable: _Mutability, visited = set()) -> None:
     """Recursively freeze or unfreeze dataclasses in a structure.
     Currently only supports tuples, lists, dictionaries, dataclasses."""
 
+    if id(obj) in visited:
+        return
+
+    visited.add(id(obj))
+
     if isinstance(obj, (tuple, list)):
         for child in obj:
-            _mark_mutable(child, mutable)
+            _mark_mutable(child, mutable, visited)
     elif isinstance(obj, dict):
         for child in obj.values():
-            _mark_mutable(child, mutable)
+            _mark_mutable(child, mutable, visited)
     elif dataclasses.is_dataclass(obj):
         object.__setattr__(obj, "__mutability__", mutable)
         for child in vars(obj).values():
-            _mark_mutable(child, mutable)
+            _mark_mutable(child, mutable, visited)
 
 
 def copy_and_mutate(obj: T, validate: bool = True) -> ContextManager[T]:
