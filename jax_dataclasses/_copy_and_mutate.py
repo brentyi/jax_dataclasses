@@ -1,7 +1,7 @@
 import contextlib
 import dataclasses
 import enum
-from typing import Any, ContextManager, TypeVar
+from typing import Any, ContextManager, Optional, Set, TypeVar
 
 import jax
 from jax import numpy as jnp
@@ -15,13 +15,16 @@ class _Mutability(enum.Enum):
     MUTABLE_NO_VALIDATION = enum.auto()
 
 
-def _mark_mutable(obj: Any, mutable: _Mutability, visited = set()) -> None:
+def _mark_mutable(
+    obj: Any, mutable: _Mutability, visited: Optional[Set[Any]] = None
+) -> None:
     """Recursively freeze or unfreeze dataclasses in a structure.
     Currently only supports tuples, lists, dictionaries, dataclasses."""
 
-    if id(obj) in visited:
+    if visited is not None and id(obj) in visited:
         return
 
+    visited = visited if visited is not None else set()
     visited.add(id(obj))
 
     if isinstance(obj, (tuple, list)):
