@@ -24,8 +24,7 @@ def _mark_mutable(
     if visited is not None and id(obj) in visited:
         return
 
-    visited = visited if visited is not None else set()
-    visited.add(id(obj))
+    visited = {id(obj)} if visited is None else visited.union({id(obj)})
 
     if isinstance(obj, (tuple, list)):
         for child in obj:
