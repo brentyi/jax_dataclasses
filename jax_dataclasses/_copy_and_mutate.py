@@ -20,9 +20,9 @@ def _mark_mutable(
 ) -> None:
     """Recursively freeze or unfreeze dataclasses in a structure.
     Currently only supports tuples, lists, dictionaries, dataclasses."""
-    
+
     if visited is None:
-    	visited = set()
+        visited = set()
     elif id(obj) in visited:
         return
     visited.add(id(obj))
