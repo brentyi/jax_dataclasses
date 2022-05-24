@@ -6,6 +6,8 @@ from typing import Any, ContextManager, Optional, Set, TypeVar
 import jax
 from jax import numpy as jnp
 
+from . import _dataclasses
+
 T = TypeVar("T")
 
 
@@ -35,8 +37,10 @@ def _mark_mutable(
             _mark_mutable(child, mutable, visited)
     elif dataclasses.is_dataclass(obj):
         object.__setattr__(obj, "__mutability__", mutable)
-        for child in vars(obj).values():
-            _mark_mutable(child, mutable, visited)
+        for field in dataclasses.fields(obj):
+            # Mark non-static fields as mutable.
+            if not field.metadata.get(_dataclasses.FIELD_METADATA_STATIC_MARKER, False):
+                _mark_mutable(getattr(obj, field.name), mutable, visited)
 
 
 def copy_and_mutate(obj: T, validate: bool = True) -> ContextManager[T]:
