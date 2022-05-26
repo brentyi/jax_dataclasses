@@ -62,22 +62,27 @@ def test_copy_and_mutate():
 
 
 def test_copy_and_mutate_static():
+    @dataclasses.dataclass
+    class Inner:
+        a: int
+        b: int
+
     @jdc.pytree_dataclass
     class Foo:
         arrays: Dict[str, jnp.ndarray]
-        flag: bool = jdc.static_field()
+        child: Inner = jdc.static_field()
 
-    obj = Foo(arrays={"x": onp.ones(3)}, flag=False)
+    obj = Foo(arrays={"x": onp.ones(3)}, child=Inner(1, 2))
 
     # Registered dataclasses are initially immutable
     with pytest.raises(dataclasses.FrozenInstanceError):
-        obj.flag = True
+        obj.child = Inner(5, 6)
 
-    assert not obj.flag
+    assert obj.child == Inner(1, 2)
 
     # But can be copied and mutated in a special context
     with jdc.copy_and_mutate(obj) as obj_updated:
-        obj_updated.flag = True
+        obj_updated.child = Inner(5, 6)
 
-    assert not obj.flag
-    assert obj_updated.flag
+    assert obj.child == Inner(1, 2)
+    assert obj_updated.child == Inner(5, 6)

@@ -1,7 +1,7 @@
 import contextlib
 import dataclasses
 import enum
-from typing import Any, ContextManager, Optional, Set, TypeVar
+from typing import Any, ContextManager, Sequence, Set, TypeVar
 
 import jax
 from jax import numpy as jnp
@@ -17,30 +17,40 @@ class _Mutability(enum.Enum):
     MUTABLE_NO_VALIDATION = enum.auto()
 
 
-def _mark_mutable(
-    obj: Any, mutable: _Mutability, visited: Optional[Set[Any]] = None
-) -> None:
+def _tree_children(container: Any) -> Sequence[Any]:
+    """Grab child nodes of a pytree. This would ideally be implemented using the pytree
+    registry."""
+
+    if isinstance(container, (tuple, list)):
+        return container
+    elif isinstance(container, dict):
+        return tuple(container.values())
+    elif dataclasses.is_dataclass(container):
+        out = []
+        for field in dataclasses.fields(container):
+            # Mark non-static fields as mutable.
+            if not field.metadata.get(_dataclasses.FIELD_METADATA_STATIC_MARKER, False):
+                out.append(getattr(container, field.name))
+        return out
+    return ()
+
+
+def _mark_mutable(obj: Any, mutable: _Mutability, visited: Set[Any]) -> None:
     """Recursively freeze or unfreeze dataclasses in a structure.
     Currently only supports tuples, lists, dictionaries, dataclasses."""
 
-    if visited is None:
-        visited = set()
-    elif id(obj) in visited:
+    # Skip objects we've already visited. This avoids redundancies when there are
+    # identical branches in our pytree, but will also help prevent infinite looping from
+    # cycles.
+    if id(obj) in visited:
         return
     visited.add(id(obj))
 
-    if isinstance(obj, (tuple, list)):
-        for child in obj:
-            _mark_mutable(child, mutable, visited)
-    elif isinstance(obj, dict):
-        for child in obj.values():
-            _mark_mutable(child, mutable, visited)
-    elif dataclasses.is_dataclass(obj):
+    if dataclasses.is_dataclass(obj):
         object.__setattr__(obj, "__mutability__", mutable)
-        for field in dataclasses.fields(obj):
-            # Mark non-static fields as mutable.
-            if not field.metadata.get(_dataclasses.FIELD_METADATA_STATIC_MARKER, False):
-                _mark_mutable(getattr(obj, field.name), mutable, visited)
+
+    for child in _tree_children(obj):
+        _mark_mutable(child, mutable, visited)
 
 
 def copy_and_mutate(obj: T, validate: bool = True) -> ContextManager[T]:
@@ -59,13 +69,18 @@ def copy_and_mutate(obj: T, validate: bool = True) -> ContextManager[T]:
             mutable=_Mutability.MUTABLE
             if validate
             else _Mutability.MUTABLE_NO_VALIDATION,
+            visited=set(),
         )
 
         # Yield.
         yield obj_copy
 
         # When done, mark as immutable again.
-        _mark_mutable(obj_copy, mutable=_Mutability.FROZEN)
+        _mark_mutable(
+            obj_copy,
+            mutable=_Mutability.FROZEN,
+            visited=set(),
+        )
 
     return contextlib.contextmanager(_replace_context)(obj)
 
