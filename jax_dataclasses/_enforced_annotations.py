@@ -2,12 +2,16 @@ import dataclasses
 from typing import Any, List, Optional, Tuple
 
 from jax import numpy as jnp
-from typing_extensions import get_type_hints
+from typing_extensions import TypeGuard, get_type_hints
+
+ExpectedShape = Tuple[Any, ...]
 
 
-def _is_shape(shape: Any) -> bool:
-    """Returns `True` is `shape` is of type `Tuple[int, ...]`."""
-    return isinstance(shape, tuple) and all(map(lambda x: isinstance(x, int), shape))
+def _is_expected_shape(shape: Any) -> TypeGuard[ExpectedShape]:
+    """Returns `True` is a tuple of integers + potentially an Ellipsis."""
+    return isinstance(shape, tuple) and all(
+        map(lambda x: isinstance(x, int) or x is ..., shape)
+    )
 
 
 # Some dtype superclasses that result in a warning when we attempt a jnp.dtype() on them.
@@ -44,8 +48,8 @@ class EnforcedAnnotationsMixin:
     Example of an annotated fields that must have shape (*, 50, 150, 3) and (*, 10),
     where the batch axes must be shared:
 
-        image: Annotated[jnp.ndarray, (50, 150, 3)]
-        label: Annotated[jnp.ndarray, (10,)]
+        image: Annotated[jnp.ndarray, (..., 50, 150, 3)]
+        label: Annotated[jnp.ndarray, (..., 10,)]
 
     Fields that must be floats and integers respectively:
 
@@ -54,8 +58,8 @@ class EnforcedAnnotationsMixin:
 
     Fields with both shape and type constraints:
 
-        image: Annotated[jnp.ndarray, (50, 150, 3), jnp.floating]
-        label: Annotated[jnp.ndarray, (10,), jnp.integer]
+        image: Annotated[jnp.ndarray, (..., 50, 150, 3), jnp.floating]
+        label: Annotated[jnp.ndarray, (..., 10,), jnp.integer]
 
     Where the annotations are order-invariant and both optional.
     """
@@ -104,7 +108,7 @@ class EnforcedAnnotationsMixin:
                 ), f"Mismatched dtype, expected {dtype} but got {value.dtype}."
 
             # Shape checks.
-            metadata_shape = tuple(filter(_is_shape, metadata))
+            metadata_shape = tuple(filter(_is_expected_shape, metadata))
             shape: Optional[Tuple[int, ...]] = None
             if isinstance(value, (int, float)):
                 shape = ()
@@ -113,17 +117,7 @@ class EnforcedAnnotationsMixin:
             if len(metadata_shape) > 0 and shape is not None:
                 # Get expected shape, sans batch axes.
                 (expected_shape,) = metadata_shape
-
-                # Actual shape should be expected shape prefixed by some batch axes.
-                if len(expected_shape) > 0:
-                    shape_suffix = shape[-len(expected_shape) :]
-                    assert (
-                        shape_suffix == expected_shape
-                    ), f"Trailing shape dimensions did not match: expected {expected_shape} but got {shape_suffix}."
-                    field_batch_axes = shape[: -len(expected_shape)]
-                else:
-                    field_batch_axes = shape
-
+                field_batch_axes = _check_batch_axes(shape, expected_shape)
                 if batch_axes is None:
                     batch_axes = field_batch_axes
                 else:
@@ -138,7 +132,10 @@ class EnforcedAnnotationsMixin:
                 assert (
                     len(child_batch_axes) >= len(batch_axes)
                     and child_batch_axes[: len(batch_axes)] == batch_axes
-                ), f"Child batch axes {child_batch_axes} don't match parent axes {batch_axes}."
+                ), (
+                    f"Child batch axes {child_batch_axes} don't match parent axes"
+                    f" {batch_axes}."
+                )
 
         object.__setattr__(self, "__batch_axes__", batch_axes)
 
@@ -149,3 +146,36 @@ class EnforcedAnnotationsMixin:
         batch_axes = getattr(self, "__batch_axes__")
         assert batch_axes is not None
         return batch_axes
+
+
+def _check_batch_axes(
+    shape: Tuple[int, ...],
+    expected_shape: ExpectedShape,
+) -> Tuple[int, ...]:
+    # By default, assume batch axes are at start of
+    if ... not in expected_shape:
+        expected_shape = (...,) + expected_shape
+
+    assert expected_shape.count(...) == 1
+    batch_index = expected_shape.index(...)
+
+    # Actual shape should be expected shape prefixed by some batch axes.
+    if len(expected_shape) > 1:
+        expected_prefix = expected_shape[:batch_index]
+        expected_suffix = expected_shape[batch_index + 1 :]
+
+        prefix = shape[: len(expected_prefix)]
+        suffix = shape[-len(expected_suffix) :]
+
+        shape_error = (
+            "Shape did not match annotation: expected"
+            f" ({','.join(map(str,expected_prefix + ('*',) + expected_suffix))}) but"
+            f" got {shape}."
+        )
+        assert suffix == expected_suffix, shape_error
+        assert prefix == expected_prefix, shape_error
+        batch_axes = shape[len(expected_prefix) : -len(expected_suffix)]
+    else:
+        batch_axes = shape
+
+    return batch_axes

@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 setup(
     name="jax_dataclasses",
-    version="1.2.2",
+    version="1.2.3",
     description="Dataclasses + JAX",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -18,6 +18,7 @@ setup(
     install_requires=[
         "jax",
         "jaxlib",
+        "typing_extensions",
     ],
     extras_require={
         "testing": [

@@ -102,7 +102,7 @@ print(obj_updated)
 Subclassing from <code>jdc.<strong>EnforcedAnnotationsMixin</strong></code>
 enables automatic shape and data-type validation. Arrays contained within
 dataclasses are validated on instantiation and a **`.get_batch_axes()`** method
-is exposed for grabbing any common prefixes to the shapes of contained arrays.
+is exposed for grabbing any common batch axes to the shapes of contained arrays.
 
 We can start by importing the standard `Annotated` type:
 
@@ -121,11 +121,16 @@ We can then add shape annotations:
 class MnistStruct(jdc.EnforcedAnnotationsMixin):
     image: Annotated[
         jnp.ndarray,
-        (28, 28),
+        # Note that we can move the expected location of the batch axes by
+        # shifting the ellipsis around.
+        #
+        # If the ellipsis is excluded, we assume batch axes at the start of the
+        # shape.
+        (..., 28, 28),
     ]
     label: Annotated[
         jnp.ndarray,
-        (10,),
+        (..., 10),
     ]
 ```
 
@@ -147,12 +152,12 @@ Or both (note that annotations are order-invariant):
 ```python
     image: Annotated[
         jnp.ndarray,
-        (28, 28),
+        (..., 28, 28),
         jnp.float32,
     ]
     label: Annotated[
         jnp.ndarray,
-        (10,),
+        (..., 10),
         jnp.integer,
     ]
 ```

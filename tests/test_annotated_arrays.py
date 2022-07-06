@@ -13,12 +13,12 @@ import jax_dataclasses as jdc
 class MnistStruct(jdc.EnforcedAnnotationsMixin):
     image: Annotated[
         jnp.ndarray,
-        (28, 28),
+        (..., 28, 28),
         jnp.floating,
     ]
     label: Annotated[
         jnp.ndarray,
-        (10,),
+        (..., 10),
         jnp.integer,
     ]
 
@@ -27,7 +27,7 @@ class MnistStruct(jdc.EnforcedAnnotationsMixin):
 class MnistStructPartial(jdc.EnforcedAnnotationsMixin):
     image_shape_only: Annotated[
         jnp.ndarray,
-        (28, 28),
+        (28, 28),  # Ellipsis will be appended automatically.
     ]
     label_dtype_only: Annotated[
         jnp.ndarray,
@@ -150,6 +150,29 @@ def test_grad():
     # Make sure we can compute gradients wrt annotated dataclasses.
     grad = jax.grad(lambda x: jnp.sum(x.parameters))(Vector3(onp.zeros(3)))
     onp.testing.assert_allclose(grad.parameters, onp.ones((3,)))
+
+
+def test_unannotated():
+    @jdc.pytree_dataclass
+    class Test(jdc.EnforcedAnnotationsMixin):
+        a: onp.ndarray
+
+    with pytest.raises(AssertionError):
+        Test(onp.zeros((2, 1, 2, 3, 5, 7, 9))).get_batch_axes()
+
+
+def test_middle_batch_axes():
+    @jdc.pytree_dataclass
+    class Test(jdc.EnforcedAnnotationsMixin):
+        a: Annotated[onp.ndarray, (3, ..., 5, 7, 9)]
+
+    test = Test(onp.zeros((3, 1, 2, 3, 5, 7, 9)))
+    assert test.get_batch_axes() == (1, 2, 3)
+
+    with pytest.raises(AssertionError):
+        Test(onp.zeros((2, 1, 2, 3, 5, 7, 9)))
+    with pytest.raises(AssertionError):
+        Test(onp.zeros((3, 1, 2, 3, 5, 7)))
 
 
 # This test currently breaks -- shape assertions on instantiation makes it impossible to
