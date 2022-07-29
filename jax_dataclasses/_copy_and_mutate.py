@@ -5,8 +5,7 @@ from typing import Any, ContextManager, Sequence, Set, TypeVar
 
 import jax
 from jax import numpy as jnp
-
-from . import _dataclasses
+from jax._src.tree_util import _registry  # Dangerous!
 
 T = TypeVar("T")
 
@@ -21,18 +20,11 @@ def _tree_children(container: Any) -> Sequence[Any]:
     """Grab child nodes of a pytree. This would ideally be implemented using the pytree
     registry."""
 
-    if isinstance(container, (tuple, list)):
-        return container
-    elif isinstance(container, dict):
-        return tuple(container.values())
-    elif dataclasses.is_dataclass(container):
-        out = []
-        for field in dataclasses.fields(container):
-            # Mark non-static fields as mutable.
-            if not field.metadata.get(_dataclasses.FIELD_METADATA_STATIC_MARKER, False):
-                out.append(getattr(container, field.name))
-        return out
-    return ()
+    registry_entry = _registry.get(type(container))
+    if registry_entry is not None:
+        children, _metadata = registry_entry.to_iter(container)
+        return list(children)
+    return []
 
 
 def _mark_mutable(obj: Any, mutable: _Mutability, visited: Set[Any]) -> None:

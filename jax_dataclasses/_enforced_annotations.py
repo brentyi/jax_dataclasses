@@ -81,7 +81,6 @@ class EnforcedAnnotationsMixin:
 
         # For each field...
         for field in dataclasses.fields(self):
-
             type_hint = hint_from_name[field.name]
             value = self.__getattribute__(field.name)
 

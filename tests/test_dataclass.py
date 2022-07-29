@@ -10,7 +10,7 @@ import jax_dataclasses as jdc
 
 
 def _assert_pytree_allclose(x, y):
-    jax.tree_multimap(
+    jax.tree_map(
         lambda *arrays: onp.testing.assert_allclose(arrays[0], arrays[1]), x, y
     )
 
