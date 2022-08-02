@@ -2,6 +2,7 @@ import dataclasses
 from typing import Dict, List, Optional, Type, TypeVar
 
 import jax
+from jax import tree_util
 
 try:
     # Attempt to import flax for serialization. The exception handling lets us drop
@@ -79,7 +80,7 @@ def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
             **{key: tdef for key, tdef in zip(static_field_names, treedef)},
         )
 
-    jax.tree_util.register_pytree_node(cls, _flatten, _unflatten)
+    tree_util.register_pytree_node(cls, _flatten, _unflatten)
 
     # Serialization: this is mostly copied from `flax.struct.dataclass`.
     if serialization is not None:

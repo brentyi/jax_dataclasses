@@ -5,12 +5,13 @@ static fields, etc.
 import jax
 import numpy as onp
 import pytest
+from jax import tree_util
 
 import jax_dataclasses as jdc
 
 
 def _assert_pytree_allclose(x, y):
-    jax.tree_map(
+    tree_util.tree_map(
         lambda *arrays: onp.testing.assert_allclose(arrays[0], arrays[1]), x, y
     )
 

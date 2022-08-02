@@ -5,6 +5,7 @@ from typing import Any, ContextManager, Sequence, Set, TypeVar
 
 import jax
 from jax import numpy as jnp
+from jax import tree_util
 from jax._src.tree_util import _registry  # Dangerous!
 
 T = TypeVar("T")
@@ -53,7 +54,7 @@ def copy_and_mutate(obj: T, validate: bool = True) -> ContextManager[T]:
     # Inner function helps with static typing!
     def _replace_context(obj: T):
         # Make a copy of the input object.
-        obj_copy = jax.tree_map(lambda leaf: leaf, obj)
+        obj_copy = tree_util.tree_map(lambda leaf: leaf, obj)
 
         # Mark it as mutable.
         _mark_mutable(
@@ -90,17 +91,19 @@ def _new_setattr(self, name: str, value: Any):
         current_value = getattr(self, name)
 
         # Make sure tree structure is unchanged.
-        assert jax.tree_structure(value) == jax.tree_structure(
+        assert tree_util.tree_structure(value) == tree_util.tree_structure(
             current_value
         ), "Mismatched tree structure!"
 
         # Check leaf shapes.
         new_shapes = tuple(
-            leaf.shape for leaf in jax.tree_leaves(value) if hasattr(leaf, "shape")
+            leaf.shape
+            for leaf in tree_util.tree_leaves(value)
+            if hasattr(leaf, "shape")
         )
         cur_shapes = tuple(
             leaf.shape
-            for leaf in jax.tree_leaves(current_value)
+            for leaf in tree_util.tree_leaves(current_value)
             if hasattr(leaf, "shape")
         )
         assert (
@@ -110,12 +113,12 @@ def _new_setattr(self, name: str, value: Any):
         # Check leaf dtypes.
         new_dtypes = tuple(
             _unify_floats(leaf.dtype)
-            for leaf in jax.tree_leaves(value)
+            for leaf in tree_util.tree_leaves(value)
             if hasattr(leaf, "dtype")
         )
         cur_dtypes = tuple(
             _unify_floats(leaf.dtype)
-            for leaf in jax.tree_leaves(current_value)
+            for leaf in tree_util.tree_leaves(current_value)
             if hasattr(leaf, "dtype")
         )
         assert (
