@@ -10,6 +10,7 @@
 * [Overview](#overview)
 * [Installation](#installation)
 * [Core interface](#core-interface)
+* [Static fields](#static-fields)
 * [Mutations](#mutations)
 * [Shape and data-type annotations](#shape-and-data-type-annotations)
 * [Alternatives](#alternatives)
@@ -35,8 +36,7 @@ Heavily influenced by some great existing work (the obvious one being
 
 ### Installation
 
-The latest version of `jax_dataclasses` requires Python>=3.7. Python 3.6 will
-work as well, but is missing support for shape annotations.
+In Python >=3.7:
 
 ```bash
 pip install jax_dataclasses
@@ -51,20 +51,29 @@ import jax_dataclasses as jdc
 ### Core interface
 
 `jax_dataclasses` is meant to provide a drop-in replacement for
-`dataclasses.dataclass`:
-
-- <code>jdc.<strong>pytree_dataclass</strong></code> has the same interface as
-  `dataclasses.dataclass`, but also registers the target class as a pytree
-  container.
-- <code>jdc.<strong>static_field</strong></code> has the same interface as
-  `dataclasses.field`, but will also mark the field as static. In a pytree node,
-  static fields will be treated as part of the treedef instead of as a child of
-  the node; all fields that are not explicitly marked static should contain
-  arrays or child nodes.
+`dataclasses.dataclass`: <code>jdc.<strong>pytree_dataclass</strong></code> has
+the same interface as `dataclasses.dataclass`, but also registers the target
+class as a pytree node.
 
 We also provide several aliases:
 `jdc.[field, asdict, astuples, is_dataclass, replace]` are all identical to
 their counterparts in the standard dataclasses library.
+
+### Static fields
+
+To mark a field as static (in this context: constant at compile-time), we can
+wrap its type with <code>jdc.<strong>Static[]</strong></code>:
+
+```python
+@jdc.pytree_dataclass
+class A:
+    a: jnp.ndarray
+    b: jdc.Static[bool]
+```
+
+In a pytree node, static fields will be treated as part of the treedef instead
+of as a child of the node; all fields that are not explicitly marked static
+should contain arrays or child nodes.
 
 ### Mutations
 

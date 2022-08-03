@@ -68,8 +68,30 @@ def test_static_field():
     @jdc.pytree_dataclass
     class A:
         field1: float
-        field2: float = jdc.field()
-        field3: bool = jdc.static_field()
+        field2: float
+        field3: jdc.Static[bool]
+
+    @jax.jit
+    def jitted_op(obj: A) -> float:
+        if obj.field3:
+            return obj.field1 + obj.field2
+        else:
+            return obj.field1 - obj.field2
+
+    with pytest.raises(ValueError):
+        # Cannot map over pytrees with different treedefs
+        _assert_pytree_allclose(A(1.0, 2.0, False), A(1.0, 2.0, True))
+
+    _assert_pytree_allclose(jitted_op(A(5.0, 3.0, True)), 8.0)
+    _assert_pytree_allclose(jitted_op(A(5.0, 3.0, False)), 2.0)
+
+
+def test_static_field_deprecated():
+    @jdc.pytree_dataclass
+    class A:
+        field1: float
+        field2: float
+        field3: bool = jdc.static_field()  # type: ignore
 
     @jax.jit
     def jitted_op(obj: A) -> float:

@@ -3,7 +3,6 @@ import dataclasses
 import enum
 from typing import Any, ContextManager, Sequence, Set, TypeVar
 
-import jax
 from jax import numpy as jnp
 from jax import tree_util
 from jax._src.tree_util import _registry  # Dangerous!

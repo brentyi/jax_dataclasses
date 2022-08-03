@@ -14,13 +14,19 @@ if TYPE_CHECKING:
     # Note that mypy will not follow aliases, so `from dataclasses import dataclass` is
     # preferred over `dataclass = dataclasses.dataclass`.
     #
-    # For the future, dataclass transforms may also be worth looking into:
+    # Dataclass transforms serve a similar purpose, but are currently only supported in
+    # pyright and pylance.
     # https://github.com/microsoft/pyright/blob/master/specs/dataclass_transforms.md
     from dataclasses import dataclass as pytree_dataclass
+
+    # `static_field()` is deprecated, but not a lot of code to support, so leaving it
+    # for now...
     from dataclasses import field as static_field
 else:
-    from ._dataclasses import pytree_dataclass, static_field
+    from ._dataclasses import pytree_dataclass
+    from ._dataclasses import deprecated_static_field as static_field
 
+from ._dataclasses import Static
 from ._enforced_annotations import EnforcedAnnotationsMixin
 
 __all__ = [
@@ -32,6 +38,6 @@ __all__ = [
     "replace",
     "copy_and_mutate",
     "pytree_dataclass",
-    "static_field",
+    "Static",
     "EnforcedAnnotationsMixin",
 ]

@@ -2,7 +2,6 @@
 """
 
 import flax
-import jax
 import numpy as onp
 from jax import tree_util
 
@@ -20,7 +19,7 @@ def test_serialization():
     class A:
         field1: int
         field2: int
-        field3: bool = jdc.static_field()
+        field3: jdc.Static[bool]
 
     obj = A(field1=5, field2=3, field3=True)
 

@@ -1,8 +1,8 @@
 import dataclasses
 from typing import Dict, List, Optional, Type, TypeVar
 
-import jax
 from jax import tree_util
+from typing_extensions import Annotated
 
 try:
     # Attempt to import flax for serialization. The exception handling lets us drop
@@ -16,7 +16,14 @@ from . import _copy_and_mutate
 T = TypeVar("T")
 
 
-FIELD_METADATA_STATIC_MARKER = "__jax_dataclasses_static_field__"
+JDC_STATIC_MARKER = "__jax_dataclasses_static_field__"
+
+
+# Stolen from here: https://github.com/google/jax/issues/10476
+InnerT = TypeVar("InnerT")
+Static = Annotated[InnerT, JDC_STATIC_MARKER]
+"""Annotates a type as static in the sense of JAX; in a pytree, fields marked as such
+should be hashable and are treated as part of the treedef and not as a child node."""
 
 
 def pytree_dataclass(cls: Optional[Type] = None, **kwargs):
@@ -36,11 +43,11 @@ def pytree_dataclass(cls: Optional[Type] = None, **kwargs):
         return wrap(cls)
 
 
-def static_field(*args, **kwargs):
-    """Substitute for dataclasses.field, which also marks a field as static."""
+def deprecated_static_field(*args, **kwargs):
+    """Deprecated, prefer `Static[]` on the type annotation instead."""
 
     kwargs["metadata"] = kwargs.get("metadata", {})
-    kwargs["metadata"][FIELD_METADATA_STATIC_MARKER] = True
+    kwargs["metadata"][JDC_STATIC_MARKER] = True
 
     return dataclasses.field(*args, **kwargs)
 
@@ -62,10 +69,20 @@ def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
     for field in dataclasses.fields(cls):
         if not field.init:
             continue
-        if field.metadata.get(FIELD_METADATA_STATIC_MARKER, False):
+
+        # Two ways to mark a field as static: either via the Static[] type or
+        # jdc.static_field().
+        if (
+            hasattr(field.type, "__metadata__")
+            and JDC_STATIC_MARKER in field.type.__metadata__
+        ):
             static_field_names.append(field.name)
-        else:
-            child_node_field_names.append(field.name)
+            continue
+        if field.metadata.get(JDC_STATIC_MARKER, False):
+            static_field_names.append(field.name)
+            continue
+
+        child_node_field_names.append(field.name)
 
     # Define flatten, unflatten operations: this simple converts our dataclass to a list
     # of fields.
