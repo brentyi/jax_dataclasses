@@ -2,6 +2,8 @@
 static fields, etc.
 """
 
+from __future__ import annotations
+
 import jax
 import numpy as onp
 import pytest

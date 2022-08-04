@@ -17,10 +17,9 @@ if TYPE_CHECKING:
     # Dataclass transforms serve a similar purpose, but are currently only supported in
     # pyright and pylance.
     # https://github.com/microsoft/pyright/blob/master/specs/dataclass_transforms.md
-    from dataclasses import dataclass as pytree_dataclass
-
     # `static_field()` is deprecated, but not a lot of code to support, so leaving it
     # for now...
+    from dataclasses import dataclass as pytree_dataclass
     from dataclasses import field as static_field
 else:
     from ._dataclasses import pytree_dataclass

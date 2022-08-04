@@ -1,8 +1,9 @@
 import dataclasses
+import inspect
 from typing import Dict, List, Optional, Type, TypeVar
 
 from jax import tree_util
-from typing_extensions import Annotated
+from typing_extensions import Annotated, get_type_hints
 
 try:
     # Attempt to import flax for serialization. The exception handling lets us drop
@@ -66,15 +67,28 @@ def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
     child_node_field_names: List[str] = []
     static_field_names: List[str] = []
 
+    # We use get_type_hints() instead of field.type to make sure that forward references
+    # are resolved.
+    #
+    # We make a copy of the caller's local namespace, and add the registered class to it
+    # in advance: this prevents cyclic references from breaking get_type_hints().
+    caller_localns = dict(inspect.stack()[1][0].f_locals)
+    if cls.__name__ not in caller_localns:
+        caller_localns[cls.__name__] = None
+    type_from_name = get_type_hints(cls, localns=caller_localns, include_extras=True)
+
     for field in dataclasses.fields(cls):
         if not field.init:
             continue
 
+        field_type = type_from_name[field.name]
+        print(field_type)
+
         # Two ways to mark a field as static: either via the Static[] type or
         # jdc.static_field().
         if (
-            hasattr(field.type, "__metadata__")
-            and JDC_STATIC_MARKER in field.type.__metadata__
+            hasattr(field_type, "__metadata__")
+            and JDC_STATIC_MARKER in field_type.__metadata__
         ):
             static_field_names.append(field.name)
             continue
