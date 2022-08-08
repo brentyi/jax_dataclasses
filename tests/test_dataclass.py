@@ -4,6 +4,8 @@ static fields, etc.
 
 from __future__ import annotations
 
+from typing import Generic, TypeVar
+
 import jax
 import numpy as onp
 import pytest
@@ -115,7 +117,7 @@ def test_no_init():
     class A:
         field1: float
         field2: float = jdc.field()
-        field3: bool = jdc.static_field(init=False)
+        field3: jdc.Static[bool] = jdc.field(init=False)
 
         def __post_init__(self):
             object.__setattr__(self, "field3", False)
@@ -125,3 +127,33 @@ def test_no_init():
         return A(field1=a, field2=a * 2.0)
 
     assert construct_A(5.0).field3 is False
+
+
+def test_static_field_forward_ref():
+    @jdc.pytree_dataclass
+    class A:
+        field1: float
+        field2: float
+        field3: jdc.Static[Container[bool]]
+
+    T = TypeVar("T")
+
+    @jdc.pytree_dataclass
+    class Container(Generic[T]):
+        x: T
+
+    @jax.jit
+    def jitted_op(obj: A) -> float:
+        if obj.field3.x:
+            return obj.field1 + obj.field2
+        else:
+            return obj.field1 - obj.field2
+
+    with pytest.raises(ValueError):
+        # Cannot map over pytrees with different treedefs
+        _assert_pytree_allclose(
+            A(1.0, 2.0, Container(False)), A(1.0, 2.0, Container(True))
+        )
+
+    _assert_pytree_allclose(jitted_op(A(5.0, 3.0, Container(True))), 8.0)
+    _assert_pytree_allclose(jitted_op(A(5.0, 3.0, Container(False))), 2.0)

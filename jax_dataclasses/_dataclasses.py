@@ -1,9 +1,12 @@
+from __future__ import annotations
+
+import collections
 import dataclasses
-import inspect
+import sys
 from typing import Dict, List, Optional, Type, TypeVar
 
 from jax import tree_util
-from typing_extensions import Annotated, get_type_hints
+from typing_extensions import Annotated
 
 try:
     # Attempt to import flax for serialization. The exception handling lets us drop
@@ -53,12 +56,60 @@ def deprecated_static_field(*args, **kwargs):
     return dataclasses.field(*args, **kwargs)
 
 
-def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
-    """Register a dataclass as a flax-serializable pytree container.
+class _UnresolvableForwardReference:
+    def __class_getitem__(cls, item) -> Type[_UnresolvableForwardReference]:
+        """__getitem__ passthrough, for supporting generics."""
+        return _UnresolvableForwardReference
 
-    Args:
-        cls (Type[T]): Dataclass to wrap.
+
+def _get_type_hints_partial(obj, include_extras=False):
+    """Adapted from typing.get_type_hints(), but aimed at suppressing errors from not
+    (yet) resolvable forward references. Only used for detecting `jdc.Static[]`
+    annotations.
+
+    For example:
+
+        @jdc.pytree_dataclass
+        class A:
+            x: B
+            y: jdc.Static[bool]
+
+        @jdc.pytree_dataclass
+        class B:
+            x: jnp.ndarray
+
+    Note that the type annotations of `A` need to be parsed by the `pytree_dataclass`
+    decorator in order to register the static field, but `B` is not yet defined when the
+    decorator is run. We don't actually care about the details of the `B` annotation, so
+    we replace it in our annotation dictionary with a dummy value.
+
+    Differences:
+        1. `include_extras` must be True.
+        2. Only supports types.
+        3. Doesn't throw an error when a name is not found. Instead, replaces the value
+           with `_UnresolvableForwardReference`.
     """
+    assert include_extras
+    assert isinstance(obj, type)
+
+    hints = {}
+    for base in reversed(obj.__mro__):
+        # Replace any unresolvable names with _UnresolvableForwardReference.
+        base_globals = collections.defaultdict(lambda: _UnresolvableForwardReference)
+        base_globals.update(sys.modules[base.__module__].__dict__)
+
+        ann = base.__dict__.get("__annotations__", {})
+        for name, value in ann.items():
+            if value is None:
+                value = type(None)
+            if isinstance(value, str):
+                value = eval(value, base_globals)
+            hints[name] = value
+    return hints
+
+
+def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
+    """Register a dataclass as a flax-serializable pytree container."""
 
     assert dataclasses.is_dataclass(cls)
 
@@ -67,22 +118,20 @@ def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
     child_node_field_names: List[str] = []
     static_field_names: List[str] = []
 
-    # We use get_type_hints() instead of field.type to make sure that forward references
-    # are resolved.
+    # We don't directly use field.type for postponed evaluation; we want to make sure
+    # that our types are interpreted as proper types and not as (string) forward
+    # references.
     #
-    # We make a copy of the caller's local namespace, and add the registered class to it
-    # in advance: this prevents cyclic references from breaking get_type_hints().
-    caller_localns = dict(inspect.stack()[1][0].f_locals)
-    if cls.__name__ not in caller_localns:
-        caller_localns[cls.__name__] = None
-    type_from_name = get_type_hints(cls, localns=caller_localns, include_extras=True)
+    # Note that there are ocassionally situations where the @jdc.pytree_dataclass
+    # decorator is called before a referenced type is defined; to suppress this error,
+    # we resolve missing names to our subscriptible placeohlder object.
+    type_from_name = _get_type_hints_partial(cls, include_extras=True)
 
     for field in dataclasses.fields(cls):
         if not field.init:
             continue
 
         field_type = type_from_name[field.name]
-        print(field_type)
 
         # Two ways to mark a field as static: either via the Static[] type or
         # jdc.static_field().
