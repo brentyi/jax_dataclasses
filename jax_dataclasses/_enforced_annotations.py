@@ -2,7 +2,9 @@ import dataclasses
 from typing import Any, List, Optional, Tuple
 
 from jax import numpy as jnp
-from typing_extensions import TypeGuard, get_type_hints
+from typing_extensions import TypeGuard
+
+from ._get_type_hints import get_type_hints_partial
 
 ExpectedShape = Tuple[Any, ...]
 
@@ -73,7 +75,7 @@ class EnforcedAnnotationsMixin:
 
         assert dataclasses.is_dataclass(self)
 
-        hint_from_name = get_type_hints(type(self), include_extras=True)
+        hint_from_name = get_type_hints_partial(type(self), include_extras=True)
         batch_axes: Optional[Tuple[int, ...]] = None
 
         # Batch axes for child/nested elements.

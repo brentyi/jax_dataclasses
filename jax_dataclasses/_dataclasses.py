@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import collections
 import dataclasses
 import sys
 from typing import Dict, List, Optional, Type, TypeVar
 
 from jax import tree_util
 from typing_extensions import Annotated
+
+from ._get_type_hints import get_type_hints_partial
 
 try:
     # Attempt to import flax for serialization. The exception handling lets us drop
@@ -56,58 +57,6 @@ def deprecated_static_field(*args, **kwargs):
     return dataclasses.field(*args, **kwargs)
 
 
-class _UnresolvableForwardReference:
-    def __class_getitem__(cls, item) -> Type[_UnresolvableForwardReference]:
-        """__getitem__ passthrough, for supporting generics."""
-        return _UnresolvableForwardReference
-
-
-def _get_type_hints_partial(obj, include_extras=False):
-    """Adapted from typing.get_type_hints(), but aimed at suppressing errors from not
-    (yet) resolvable forward references. Only used for detecting `jdc.Static[]`
-    annotations.
-
-    For example:
-
-        @jdc.pytree_dataclass
-        class A:
-            x: B
-            y: jdc.Static[bool]
-
-        @jdc.pytree_dataclass
-        class B:
-            x: jnp.ndarray
-
-    Note that the type annotations of `A` need to be parsed by the `pytree_dataclass`
-    decorator in order to register the static field, but `B` is not yet defined when the
-    decorator is run. We don't actually care about the details of the `B` annotation, so
-    we replace it in our annotation dictionary with a dummy value.
-
-    Differences:
-        1. `include_extras` must be True.
-        2. Only supports types.
-        3. Doesn't throw an error when a name is not found. Instead, replaces the value
-           with `_UnresolvableForwardReference`.
-    """
-    assert include_extras
-    assert isinstance(obj, type)
-
-    hints = {}
-    for base in reversed(obj.__mro__):
-        # Replace any unresolvable names with _UnresolvableForwardReference.
-        base_globals = collections.defaultdict(lambda: _UnresolvableForwardReference)
-        base_globals.update(sys.modules[base.__module__].__dict__)
-
-        ann = base.__dict__.get("__annotations__", {})
-        for name, value in ann.items():
-            if value is None:
-                value = type(None)
-            if isinstance(value, str):
-                value = eval(value, base_globals)
-            hints[name] = value
-    return hints
-
-
 def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
     """Register a dataclass as a flax-serializable pytree container."""
 
@@ -125,7 +74,7 @@ def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
     # Note that there are ocassionally situations where the @jdc.pytree_dataclass
     # decorator is called before a referenced type is defined; to suppress this error,
     # we resolve missing names to our subscriptible placeohlder object.
-    type_from_name = _get_type_hints_partial(cls, include_extras=True)
+    type_from_name = get_type_hints_partial(cls, include_extras=True)
 
     for field in dataclasses.fields(cls):
         if not field.init:
