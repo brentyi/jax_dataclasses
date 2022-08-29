@@ -74,7 +74,7 @@ def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
     # Note that there are ocassionally situations where the @jdc.pytree_dataclass
     # decorator is called before a referenced type is defined; to suppress this error,
     # we resolve missing names to our subscriptible placeohlder object.
-    type_from_name = get_type_hints_partial(cls, include_extras=True)
+    type_from_name = get_type_hints_partial(cls, include_extras=True)  # type: ignore
 
     for field in dataclasses.fields(cls):
         if not field.init:

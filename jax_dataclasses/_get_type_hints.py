@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+import functools
 import sys
 from typing import Any, Dict, Type
 
@@ -11,6 +12,7 @@ class _UnresolvableForwardReference:
         return _UnresolvableForwardReference
 
 
+@functools.lru_cache(maxsize=128)
 def get_type_hints_partial(obj, include_extras=False) -> Dict[str, Any]:
     """Adapted from typing.get_type_hints(), but aimed at suppressing errors from not
     (yet) resolvable forward references.
@@ -42,13 +44,17 @@ def get_type_hints_partial(obj, include_extras=False) -> Dict[str, Any]:
 
     hints = {}
     for base in reversed(obj.__mro__):
+        ann = base.__dict__.get("__annotations__", {})
+        if len(ann) == 0:
+            continue
+
         # Replace any unresolvable names with _UnresolvableForwardReference.
         base_globals: Dict[str, Any] = collections.defaultdict(
             lambda: _UnresolvableForwardReference
         )
+        base_globals.update(__builtins__)
         base_globals.update(sys.modules[base.__module__].__dict__)
 
-        ann = base.__dict__.get("__annotations__", {})
         for name, value in ann.items():
             if value is None:
                 value = type(None)
