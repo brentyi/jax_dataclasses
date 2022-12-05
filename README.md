@@ -75,6 +75,9 @@ In a pytree node, static fields will be treated as part of the treedef instead
 of as a child of the node; all fields that are not explicitly marked static
 should contain arrays or child nodes.
 
+Experimental: in combination with <code>jdc.<strong>jit()</strong></code>,
+`jdc.Static[]` can also be used in function signatures.
+
 ### Mutations
 
 All dataclasses are automatically marked as frozen and thus immutable (even when

@@ -8,13 +8,13 @@ from jax import tree_util
 import jax_dataclasses as jdc
 
 
-def _assert_pytree_allclose(x, y):
+def _assert_pytree_allclose(x, y) -> None:
     tree_util.tree_map(
         lambda *arrays: onp.testing.assert_allclose(arrays[0], arrays[1]), x, y
     )
 
 
-def test_serialization():
+def test_serialization() -> None:
     @jdc.pytree_dataclass
     class A:
         field1: int

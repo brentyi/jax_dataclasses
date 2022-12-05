@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import dataclasses
-import sys
 from typing import Dict, List, Optional, Type, TypeVar
 
 from jax import tree_util

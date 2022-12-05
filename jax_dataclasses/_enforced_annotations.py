@@ -66,7 +66,7 @@ class EnforcedAnnotationsMixin:
     Where the annotations are order-invariant and both optional.
     """
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate after construction.
 
         We raise assertion errors in only two scenarios:
@@ -75,7 +75,7 @@ class EnforcedAnnotationsMixin:
 
         assert dataclasses.is_dataclass(self)
 
-        hint_from_name = get_type_hints_partial(type(self), include_extras=True)
+        hint_from_name = get_type_hints_partial(type(self), include_extras=True)  # type: ignore
         batch_axes: Optional[Tuple[int, ...]] = None
 
         # Batch axes for child/nested elements.

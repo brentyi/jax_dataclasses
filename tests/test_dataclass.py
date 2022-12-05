@@ -20,7 +20,7 @@ def _assert_pytree_allclose(x, y):
     )
 
 
-def test_init():
+def test_init() -> None:
     @jdc.pytree_dataclass
     class A:
         field1: int
@@ -30,10 +30,10 @@ def test_init():
 
     with pytest.raises(TypeError):
         # Not enough arguments
-        A(field1=5)
+        A(field1=5)  # type: ignore
 
 
-def test_default_arg():
+def test_default_arg() -> None:
     @jdc.pytree_dataclass
     class A:
         field1: int
@@ -42,7 +42,7 @@ def test_default_arg():
     assert A(field1=5, field2=3) == A(5, 3) == A(field1=5) == A(5)
 
 
-def test_flatten():
+def test_flatten() -> None:
     @jdc.pytree_dataclass
     class A:
         field1: float
@@ -55,7 +55,7 @@ def test_flatten():
     _assert_pytree_allclose(jitted_sum(A(5.0, 3.0)), 8.0)
 
 
-def test_unflatten():
+def test_unflatten() -> None:
     @jdc.pytree_dataclass
     class A:
         field1: float
@@ -68,7 +68,7 @@ def test_unflatten():
     _assert_pytree_allclose(A(1.0, 2.0), construct_A(1.0))
 
 
-def test_static_field():
+def test_static_field() -> None:
     @jdc.pytree_dataclass
     class A:
         field1: float
@@ -90,7 +90,7 @@ def test_static_field():
     _assert_pytree_allclose(jitted_op(A(5.0, 3.0, False)), 2.0)
 
 
-def test_static_field_deprecated():
+def test_static_field_deprecated() -> None:
     @jdc.pytree_dataclass
     class A:
         field1: float
@@ -112,7 +112,7 @@ def test_static_field_deprecated():
     _assert_pytree_allclose(jitted_op(A(5.0, 3.0, False)), 2.0)
 
 
-def test_no_init():
+def test_no_init() -> None:
     @jdc.pytree_dataclass
     class A:
         field1: float
@@ -129,7 +129,7 @@ def test_no_init():
     assert construct_A(5.0).field3 is False
 
 
-def test_static_field_forward_ref():
+def test_static_field_forward_ref() -> None:
     @jdc.pytree_dataclass
     class A:
         field1: float

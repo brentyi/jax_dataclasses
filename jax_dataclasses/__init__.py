@@ -1,7 +1,7 @@
 from dataclasses import asdict, astuple, field, fields, is_dataclass, replace
 from typing import TYPE_CHECKING
 
-from ._copy_and_mutate import copy_and_mutate
+from ._copy_and_mutate import copy_and_mutate as copy_and_mutate
 
 if TYPE_CHECKING:
     # Treat our JAX field and dataclass functions as their counterparts from the
@@ -27,6 +27,7 @@ else:
 
 from ._dataclasses import Static
 from ._enforced_annotations import EnforcedAnnotationsMixin
+from ._jit import jit
 
 __all__ = [
     "asdict",
@@ -39,4 +40,5 @@ __all__ = [
     "pytree_dataclass",
     "Static",
     "EnforcedAnnotationsMixin",
+    "jit",
 ]

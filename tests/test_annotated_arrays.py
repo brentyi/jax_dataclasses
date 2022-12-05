@@ -12,12 +12,12 @@ import jax_dataclasses as jdc
 @jdc.pytree_dataclass
 class MnistStruct(jdc.EnforcedAnnotationsMixin):
     image: Annotated[
-        jnp.ndarray,
+        onp.ndarray,
         (..., 28, 28),
         jnp.floating,
     ]
     label: Annotated[
-        jnp.ndarray,
+        onp.ndarray,
         (..., 10),
         jnp.integer,
     ]
@@ -26,16 +26,16 @@ class MnistStruct(jdc.EnforcedAnnotationsMixin):
 @jdc.pytree_dataclass
 class MnistStructPartial(jdc.EnforcedAnnotationsMixin):
     image_shape_only: Annotated[
-        jnp.ndarray,
+        onp.ndarray,
         (28, 28),  # Ellipsis will be appended automatically.
     ]
     label_dtype_only: Annotated[
-        jnp.ndarray,
+        onp.ndarray,
         jnp.integer,
     ]
 
 
-def test_valid():
+def test_valid() -> None:
     data = MnistStruct(
         image=onp.zeros((28, 28), dtype=onp.float32),
         label=onp.zeros((10,), dtype=onp.uint8),
@@ -54,14 +54,14 @@ def test_valid():
     )
     assert data.get_batch_axes() == (5, 7)
 
-    data = MnistStructPartial(
+    data_partial = MnistStructPartial(
         image_shape_only=onp.zeros((7, 28, 28), dtype=onp.float32),
         label_dtype_only=onp.zeros((70), dtype=onp.int32),
     )
-    assert data.get_batch_axes() == (7,)
+    assert data_partial.get_batch_axes() == (7,)
 
 
-def test_shape_mismatch():
+def test_shape_mismatch() -> None:
     with pytest.raises(AssertionError):
         MnistStruct(
             image=onp.zeros((7, 32, 32), dtype=onp.float32),
@@ -75,7 +75,7 @@ def test_shape_mismatch():
         )
 
 
-def test_batch_axis_mismatch():
+def test_batch_axis_mismatch() -> None:
     with pytest.raises(AssertionError):
         MnistStruct(
             image=onp.zeros((5, 7, 28, 28), dtype=onp.float32),
@@ -83,7 +83,7 @@ def test_batch_axis_mismatch():
         )
 
 
-def test_dtype_mismatch():
+def test_dtype_mismatch() -> None:
     with pytest.raises(AssertionError):
         MnistStruct(
             image=onp.zeros((7, 28, 28), dtype=onp.uint8),
@@ -97,10 +97,10 @@ def test_dtype_mismatch():
         )
 
 
-def test_nested():
+def test_nested() -> None:
     @jdc.pytree_dataclass
     class Parent(jdc.EnforcedAnnotationsMixin):
-        x: Annotated[jnp.integer, ()]
+        x: Annotated[onp.ndarray, jnp.floating, ()]
         child: MnistStruct
 
     # OK
@@ -133,26 +133,26 @@ def test_nested():
         )
 
 
-def test_scalar():
+def test_scalar() -> None:
     @jdc.pytree_dataclass
     class ScalarContainer(jdc.EnforcedAnnotationsMixin):
-        scalar: Annotated[jnp.ndarray, ()]  # () => scalar shape
+        scalar: Annotated[onp.ndarray, ()]  # () => scalar shape
 
-    assert ScalarContainer(scalar=5.0).get_batch_axes() == ()
+    assert ScalarContainer(scalar=5.0).get_batch_axes() == ()  # type: ignore
     assert ScalarContainer(scalar=onp.zeros((5,))).get_batch_axes() == (5,)
 
 
-def test_grad():
+def test_grad() -> None:
     @jdc.pytree_dataclass
     class Vector3(jdc.EnforcedAnnotationsMixin):
-        parameters: Annotated[jnp.ndarray, (3,)]
+        parameters: Annotated[onp.ndarray, (3,)]
 
     # Make sure we can compute gradients wrt annotated dataclasses.
     grad = jax.grad(lambda x: jnp.sum(x.parameters))(Vector3(onp.zeros(3)))
     onp.testing.assert_allclose(grad.parameters, onp.ones((3,)))
 
 
-def test_unannotated():
+def test_unannotated() -> None:
     @jdc.pytree_dataclass
     class Test(jdc.EnforcedAnnotationsMixin):
         a: onp.ndarray
@@ -161,7 +161,7 @@ def test_unannotated():
         Test(onp.zeros((2, 1, 2, 3, 5, 7, 9))).get_batch_axes()
 
 
-def test_middle_batch_axes():
+def test_middle_batch_axes() -> None:
     @jdc.pytree_dataclass
     class Test(jdc.EnforcedAnnotationsMixin):
         a: Annotated[onp.ndarray, (3, ..., 5, 7, 9)]
@@ -184,14 +184,14 @@ def test_middle_batch_axes():
 # opinion) unintuitive Pytree structures, and is easy to work around, so marking as a
 # no-fix for now.
 #
-# def test_jacobians():
+# def test_jacobians() -> None:
 #     @jdc.pytree_dataclass
 #     class Vector3(ArrayAnnotationMixin):
-#         parameters: Annotated[jnp.ndarray, (3,)]
+#         parameters: Annotated[onp.ndarray, (3,)]
 #
 #     @jdc.pytree_dataclass
 #     class Vector4(ArrayAnnotationMixin):
-#         parameters: Annotated[jnp.ndarray, (4,)]
+#         parameters: Annotated[onp.ndarray, (4,)]
 #
 #     def vec4_from_vec3(vec3: Vector3) -> Vector4:
 #         return Vector4(onp.zeros((4,)))

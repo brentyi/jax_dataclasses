@@ -1,24 +1,23 @@
 import dataclasses
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import numpy as onp
 import pytest
-from jax import numpy as jnp
 
 import jax_dataclasses as jdc
 
 
-def test_copy_and_mutate():
+def test_copy_and_mutate() -> None:
     # frozen=True should do nothing
     @jdc.pytree_dataclass(frozen=True)
     class Foo:
-        array: jnp.ndarray
+        array: Any
 
     @jdc.pytree_dataclass
     class Bar:
         children: List[Foo]
-        array: jnp.ndarray
-        array_unchanged: jnp.ndarray
+        array: Any
+        array_unchanged: onp.ndarray
 
     obj = Bar(
         children=[Foo(array=onp.zeros(3))],
@@ -35,33 +34,33 @@ def test_copy_and_mutate():
     with jdc.copy_and_mutate(obj) as obj:
         # Updates can then very easily be applied!
         obj.array = onp.zeros(3)
-        obj.children[0].array = onp.ones(3)
+        obj.children[0].array = onp.ones(3)  # type: ignore
 
         # Shapes can be validated...
         with pytest.raises(AssertionError):
-            obj.children[0].array = onp.ones(1)
+            obj.children[0].array = onp.ones(1)  # type: ignore
 
         # As well as dtypes
         with pytest.raises(AssertionError):
-            obj.children[0].array = onp.ones(3, dtype=onp.int32)
+            obj.children[0].array = onp.ones(3, dtype=onp.int32)  # type: ignore
 
     # Validation can also be disabled
     with jdc.copy_and_mutate(obj, validate=False) as obj:
-        obj.children[0].array = onp.ones(1)
-        obj.children[0].array = onp.ones(3)
+        obj.children[0].array = onp.ones(1)  # type: ignore
+        obj.children[0].array = onp.ones(3)  # type: ignore
 
     # Outside of the replace context, the copied object becomes immutable again:
     with pytest.raises(dataclasses.FrozenInstanceError):
         obj.array = onp.zeros(3)
     with pytest.raises(dataclasses.FrozenInstanceError):
-        obj.children[0].array = onp.ones(3)
+        obj.children[0].array = onp.ones(3)  # type: ignore
 
     onp.testing.assert_allclose(obj.array, onp.zeros(3))
     onp.testing.assert_allclose(obj.array_unchanged, onp.ones(3))
     onp.testing.assert_allclose(obj.children[0].array, onp.ones(3))
 
 
-def test_copy_and_mutate_static():
+def test_copy_and_mutate_static() -> None:
     @dataclasses.dataclass
     class Inner:
         a: int
@@ -69,7 +68,7 @@ def test_copy_and_mutate_static():
 
     @jdc.pytree_dataclass
     class Foo:
-        arrays: Dict[str, jnp.ndarray]
+        arrays: Dict[str, onp.ndarray]
         child: Inner = jdc.static_field()
 
     obj = Foo(arrays={"x": onp.ones(3)}, child=Inner(1, 2))

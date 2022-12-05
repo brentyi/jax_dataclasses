@@ -7,7 +7,7 @@ from jax import numpy as jnp
 import jax_dataclasses as jdc
 
 
-def test_cycle():
+def test_cycle() -> None:
     @jdc.pytree_dataclass
     class TreeNode:
         content: jnp.ndarray
