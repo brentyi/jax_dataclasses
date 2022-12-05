@@ -61,7 +61,7 @@ def jit(
           in. This is convenient for avoiding `@functools.partial()`.
     """
 
-    def wrap(fun):
+    def wrap(fun: CallableType) -> CallableType:
         signature = inspect.signature(fun)
 
         # Mark any inputs annotated with jax_dataclasses.Static[] as static.
@@ -77,19 +77,22 @@ def jit(
                 else:
                     static_argnames.append(name)
 
-        return jax.jit(
-            fun,
-            static_argnums=static_argnums if len(static_argnums) > 0 else None,
-            static_argnames=static_argnames if len(static_argnames) > 0 else None,
-            device=device,
-            backend=backend,
-            donate_argnums=donate_argnums,
-            inline=inline,
-            keep_unused=keep_unused,
-            abstracted_axes=abstracted_axes,
+        return cast(
+            CallableType,
+            jax.jit(
+                fun,
+                static_argnums=static_argnums if len(static_argnums) > 0 else None,
+                static_argnames=static_argnames if len(static_argnames) > 0 else None,
+                device=device,
+                backend=backend,
+                donate_argnums=donate_argnums,
+                inline=inline,
+                keep_unused=keep_unused,
+                abstracted_axes=abstracted_axes,
+            ),
         )
 
     if fun is None:
-        return cast(Callable[[CallableType], CallableType], wrap)
+        return wrap
     else:
-        return cast(CallableType, wrap(fun))
+        return wrap(fun)
