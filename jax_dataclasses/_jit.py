@@ -70,6 +70,8 @@ def jit(
         hint_from_name = get_type_hints_partial(fun, include_extras=True)
         for i, param in enumerate(signature.parameters.values()):
             name = param.name
+            if name not in hint_from_name:
+                continue
             hint = hint_from_name[name]
             if hasattr(hint, "__metadata__") and JDC_STATIC_MARKER in hint.__metadata__:
                 if param.kind is param.POSITIONAL_ONLY:

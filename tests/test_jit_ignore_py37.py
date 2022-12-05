@@ -92,6 +92,17 @@ def test_jit_7():
     assert func(2, 4, 1).shape == (3,)
 
 
+def test_jit_no_annotation():
+    @jdc.jit
+    def func(x: jdc.Static[int], y, z: jdc.Static[int], /) -> jax.Array:
+        assert isinstance(x, int)
+        assert not isinstance(y, int)
+        assert isinstance(z, int)
+        return jnp.full(shape=(x + z,), fill_value=y)
+
+    assert func(2, 4, 1).shape == (3,)
+
+
 def test_jit_donate_buffer():
     @jdc.jit(donate_argnums=(1,))
     def func(x: jdc.Static[int], y: int, z: jdc.Static[int], /) -> jax.Array:
