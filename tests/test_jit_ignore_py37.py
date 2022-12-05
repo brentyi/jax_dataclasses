@@ -126,6 +126,10 @@ def test_jit_forward_ref():
     assert func(SomeConfig(2, 1), 4).shape == (3,)
 
 
+def test_jit_lambda():
+    assert jdc.jit(lambda x, y: x + y)(jnp.zeros(3), jnp.ones(3)).shape == (3,)
+
+
 @dataclasses.dataclass(frozen=True)
 class SomeConfig:
     x: int
