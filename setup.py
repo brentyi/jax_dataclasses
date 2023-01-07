@@ -25,7 +25,8 @@ setup(
             "flax",  # Used for serialization tests.
             "pytest",
             "pytest-cov",
-        ]
+        ],
+        "typing": ["jaxtyping"],
     },
     classifiers=[
         "Programming Language :: Python :: 3.7",
