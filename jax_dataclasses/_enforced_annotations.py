@@ -1,13 +1,18 @@
 import dataclasses
 from typing import Any, List, Optional, Tuple, _AnnotatedAlias
 
+try:
+    from jaxtyping.array_types import _MetaAbstractArray, _NamedVariadicDim
+except ImportError:
+    _MetaAbstractArray = type(None)
+    _NamedVariadicDim = type(None)
+
 from jax import numpy as jnp
 from typing_extensions import TypeGuard
 
 from ._get_type_hints import get_type_hints_partial
 
 ExpectedShape = Tuple[Any, ...]
-import jaxtyping.array_types
 
 
 def _is_expected_shape(shape: Any) -> TypeGuard[ExpectedShape]:
@@ -128,7 +133,7 @@ class EnforcedAnnotationsMixin:
                         assert (
                             batch_axes == field_batch_axes
                         ), f"Batch axis mismatch: {batch_axes} and {field_batch_axes}."
-            elif isinstance(type_hint, jaxtyping.array_types._MetaAbstractArray):
+            elif isinstance(type_hint, _MetaAbstractArray):
                 if type_hint.index_variadic == 0 and len(type_hint.dims) == 1:
                     assert isinstance(value, type_hint)
                     continue
@@ -139,9 +144,7 @@ class EnforcedAnnotationsMixin:
                         (type_hint,),
                         {
                             "index_variadic": 0,
-                            "dims": [
-                                jaxtyping.array_types._NamedVariadicDim(object(), False)
-                            ]
+                            "dims": [_NamedVariadicDim(object(), False)]
                             + type_hint.dims,
                         },
                     )
