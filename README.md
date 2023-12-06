@@ -7,32 +7,29 @@
 
 <!-- vim-markdown-toc GFM -->
 
-* [Overview](#overview)
-* [Installation](#installation)
-* [Core interface](#core-interface)
-* [Static fields](#static-fields)
-* [Mutations](#mutations)
-* [Shape and data-type annotations](#shape-and-data-type-annotations)
-* [Alternatives](#alternatives)
-* [Misc](#misc)
+- [Overview](#overview)
+- [Installation](#installation)
+- [Core interface](#core-interface)
+- [Static fields](#static-fields)
+- [Mutations](#mutations)
+- [Alternatives](#alternatives)
+- [Misc](#misc)
 
 <!-- vim-markdown-toc -->
 
 ### Overview
 
-`jax_dataclasses` provides a wrapper around `dataclasses.dataclass` for use in
+`jax_dataclasses` provides a simple wrapper around `dataclasses.dataclass` for use in
 JAX, which enables automatic support for:
 
 - [Pytree](https://jax.readthedocs.io/en/latest/pytrees.html) registration. This
-  allows dataclasses to be used at API boundaries in JAX. (necessary for
-  function transformations, JIT, etc)
+  allows dataclasses to be used at API boundaries in JAX.
 - Serialization via `flax.serialization`.
-- Static analysis with tools like `mypy`, `jedi`, `pyright`, etc. (including for
-  constructors)
-- Optional shape and data-type annotations, which are checked at runtime.
 
-Heavily influenced by some great existing work (the obvious one being
-`flax.struct.dataclass`); see [Alternatives](#alternatives) for comparisons.
+Distinguishing features include:
+
+- An annotation-based interface for marking static fields.
+- Improved ergonomics for "model surgery" in nested structures.
 
 ### Installation
 
@@ -56,7 +53,7 @@ the same interface as `dataclasses.dataclass`, but also registers the target
 class as a pytree node.
 
 We also provide several aliases:
-`jdc.[field, asdict, astuples, is_dataclass, replace]` are all identical to
+`jdc.[field, asdict, astuples, is_dataclass, replace]` are identical to
 their counterparts in the standard dataclasses library.
 
 ### Static fields
@@ -67,7 +64,7 @@ wrap its type with <code>jdc.<strong>Static[]</strong></code>:
 ```python
 @jdc.pytree_dataclass
 class A:
-    a: jnp.ndarray
+    a: jax.Array
     b: jdc.Static[bool]
 ```
 
@@ -75,8 +72,15 @@ In a pytree node, static fields will be treated as part of the treedef instead
 of as a child of the node; all fields that are not explicitly marked static
 should contain arrays or child nodes.
 
-Experimental: in combination with <code>jdc.<strong>jit()</strong></code>,
-`jdc.Static[]` can also be used in function signatures.
+Bonus: if you like `jdc.Static[]`, we also introduce
+<code>jdc.<strong>jit()</strong></code>. This enables use in function
+signatures, for example:
+
+```python
+@jdc.jit
+def f(a: jax.Array, b: jdc.Static[bool]) -> jax.Array:
+  ...
+```
 
 ### Mutations
 
@@ -87,12 +91,13 @@ pytree and (b) returns a context in which any of that copy's contained
 dataclasses are temporarily mutable:
 
 ```python
+import jax
 from jax import numpy as jnp
 import jax_dataclasses as jdc
 
 @jdc.pytree_dataclass
 class Node:
-  child: jnp.ndarray
+  child: jax.Array
 
 obj = Node(child=jnp.zeros(3))
 
@@ -100,114 +105,13 @@ with jdc.copy_and_mutate(obj) as obj_updated:
   # Make mutations to the dataclass. This is primarily useful for nested
   # dataclasses.
   #
-  # Also does input validation: if the treedef, leaf shapes, or dtypes of `obj`
-  # and `obj_updated` don't match, an AssertionError will be raised.
+  # Does input validation by default: if the treedef, leaf shapes, or dtypes
+  # of `obj` and `obj_updated` don't match, an AssertionError will be raised.
   # This can be disabled with a `validate=False` argument.
   obj_updated.child = jnp.ones(3)
 
 print(obj)
 print(obj_updated)
-```
-
-### Shape and data-type annotations
-
-Subclassing from <code>jdc.<strong>EnforcedAnnotationsMixin</strong></code>
-enables automatic shape and data-type validation. Arrays contained within
-dataclasses are validated on instantiation and a **`.get_batch_axes()`** method
-is exposed for grabbing any common batch axes to the shapes of contained arrays.
-
-We can start by importing the standard `Annotated` type:
-
-```python
-# Python >=3.9
-from typing import Annotated
-
-# Backport
-from typing_extensions import Annotated
-```
-
-We can then add shape annotations:
-
-```python
-@jdc.pytree_dataclass
-class MnistStruct(jdc.EnforcedAnnotationsMixin):
-    image: Annotated[
-        jnp.ndarray,
-        # Note that we can move the expected location of the batch axes by
-        # shifting the ellipsis around.
-        #
-        # If the ellipsis is excluded, we assume batch axes at the start of the
-        # shape.
-        (..., 28, 28),
-    ]
-    label: Annotated[
-        jnp.ndarray,
-        (..., 10),
-    ]
-```
-
-Or data-type annotations:
-
-```python
-    image: Annotated[
-        jnp.ndarray,
-        jnp.float32,
-    ]
-    label: Annotated[
-        jnp.ndarray,
-        jnp.integer,
-    ]
-```
-
-Or both (note that annotations are order-invariant):
-
-```python
-    image: Annotated[
-        jnp.ndarray,
-        (..., 28, 28),
-        jnp.float32,
-    ]
-    label: Annotated[
-        jnp.ndarray,
-        (..., 10),
-        jnp.integer,
-    ]
-```
-
-Then, assuming we've constrained both the shape and data-type:
-
-```python
-# OK
-struct = MnistStruct(
-  image=onp.zeros((28, 28), dtype=onp.float32),
-  label=onp.zeros((10,), dtype=onp.uint8),
-)
-print(struct.get_batch_axes()) # Prints ()
-
-# OK
-struct = MnistStruct(
-  image=onp.zeros((32, 28, 28), dtype=onp.float32),
-  label=onp.zeros((32, 10), dtype=onp.uint8),
-)
-print(struct.get_batch_axes()) # Prints (32,)
-
-# AssertionError on instantiation because of type mismatch
-MnistStruct(
-  image=onp.zeros((28, 28), dtype=onp.float32),
-  label=onp.zeros((10,), dtype=onp.float32), # Not an integer type!
-)
-
-# AssertionError on instantiation because of shape mismatch
-MnistStruct(
-  image=onp.zeros((28, 28), dtype=onp.float32),
-  label=onp.zeros((5,), dtype=onp.uint8),
-)
-
-# AssertionError on instantiation because of batch axis mismatch
-struct = MnistStruct(
-  image=onp.zeros((64, 28, 28), dtype=onp.float32),
-  label=onp.zeros((32, 10), dtype=onp.uint8),
-)
 ```
 
 ### Alternatives
@@ -246,8 +150,6 @@ The main differentiators of `jax_dataclasses` are:
   dataclasses is really handy. This is supported in `flax.struct` (naturally)
   and `jax_dataclasses`, but not `chex` or `tjax`.
 
-- **Shape and type annotations.** See above.
-
 You can also eschew the dataclass-style interface entirely;
 [see how brax registers pytrees](https://github.com/google/brax/blob/730e05d4af58eada5b49a44e849107d76e386b9a/brax/pytree.py).
 This is a reasonable thing to prefer: it requires some floating strings and
@@ -256,6 +158,6 @@ breaks things that I care about but you may not (like immutability and
 
 ### Misc
 
-This code was originally written for and factored out of
+`jax_dataclasses` was originally written for and factored out of
 [jaxfg](http://github.com/brentyi/jaxfg), where
 [Nick Heppert](https://github.com/SuperN1ck) provided valuable feedback.

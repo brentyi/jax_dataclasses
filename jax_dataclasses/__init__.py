@@ -20,10 +20,8 @@ if TYPE_CHECKING:
     # `static_field()` is deprecated, but not a lot of code to support, so leaving it
     # for now...
     from dataclasses import dataclass as pytree_dataclass
-    from dataclasses import field as static_field
 else:
     from ._dataclasses import pytree_dataclass
-    from ._dataclasses import deprecated_static_field as static_field
 
 from ._dataclasses import Static
 from ._enforced_annotations import EnforcedAnnotationsMixin

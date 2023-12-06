@@ -1,5 +1,6 @@
 import inspect
-from typing import Any, Callable, Iterable, Optional, TypeVar, Union, cast, overload
+from typing import (Any, Callable, Iterable, Optional, TypeVar, Union, cast,
+                    overload)
 
 import jax
 from jaxlib import xla_client as xc

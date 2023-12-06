@@ -33,8 +33,8 @@ def _is_dtype(dtype: Any) -> bool:
 
 
 class EnforcedAnnotationsMixin:
-    """Mixin for dataclasses containing arrays that are annotated with expected shapes
-    or types that can be checked at runtime.
+    """**Deprecated** mixin for dataclasses containing arrays that are
+    annotated with expected shapes or types that can be checked at runtime.
 
     Runs input validation on instantiation and provides a single helper,
     `get_batch_axes()`, that returns common batch axes.

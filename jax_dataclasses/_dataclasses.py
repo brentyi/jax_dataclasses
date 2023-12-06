@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 from typing import Dict, List, Optional, Type, TypeVar
 
 from jax import tree_util
-from typing_extensions import Annotated
+from typing_extensions import Annotated, get_type_hints
 
 from ._get_type_hints import get_type_hints_partial
 
@@ -35,7 +36,7 @@ def pytree_dataclass(cls: Optional[Type] = None, **kwargs):
     PyTrees."""
 
     def wrap(cls):
-        return _register_pytree_dataclass(dataclasses.dataclass(cls, **kwargs))
+        return dataclasses.dataclass(cls, **kwargs)
 
     if "frozen" in kwargs:
         assert kwargs["frozen"] is True, "Pytree dataclasses can only be frozen!"
@@ -56,56 +57,73 @@ def deprecated_static_field(*args, **kwargs):
     return dataclasses.field(*args, **kwargs)
 
 
-def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
+@dataclasses.dataclass(frozen=True)
+class FieldInfo:
+    child_node_field_names: List[str]
+    static_field_names: List[str]
+
+
+def register_pytree_dataclass(cls: Type[T]) -> Type[T]:
     """Register a dataclass as a flax-serializable pytree container."""
 
     assert dataclasses.is_dataclass(cls)
 
-    # Determine which fields are static and part of the treedef, and which should be
-    # registered as child nodes.
-    child_node_field_names: List[str] = []
-    static_field_names: List[str] = []
+    @functools.lru_cache(maxsize=1)
+    def get_field_info() -> FieldInfo:
+        # Determine which fields are static and part of the treedef, and which should be
+        # registered as child nodes.
+        child_node_field_names: List[str] = []
+        static_field_names: List[str] = []
 
-    # We don't directly use field.type for postponed evaluation; we want to make sure
-    # that our types are interpreted as proper types and not as (string) forward
-    # references.
-    #
-    # Note that there are ocassionally situations where the @jdc.pytree_dataclass
-    # decorator is called before a referenced type is defined; to suppress this error,
-    # we resolve missing names to our subscriptible placeohlder object.
-    type_from_name = get_type_hints_partial(cls, include_extras=True)  # type: ignore
+        # We don't directly use field.type for postponed evaluation; we want to make sure
+        # that our types are interpreted as proper types and not as (string) forward
+        # references.
+        #
+        # Note that there are ocassionally situations where the @jdc.pytree_dataclass
+        # decorator is called before a referenced type is defined; to suppress this error,
+        # we resolve missing names to our subscriptible placeholder object.
 
-    for field in dataclasses.fields(cls):
-        if not field.init:
-            continue
+        try:
+            type_from_name = get_type_hints(cls, include_extras=True)  # type: ignore
+        except Exception:
+            # Try again, but suppress errors from unresolvable forward
+            # references. This should be rare.
+            type_from_name = get_type_hints_partial(cls, include_extras=True)  # type: ignore
 
-        field_type = type_from_name[field.name]
+        for field in dataclasses.fields(cls):
+            if not field.init:
+                continue
 
-        # Two ways to mark a field as static: either via the Static[] type or
-        # jdc.static_field().
-        if (
-            hasattr(field_type, "__metadata__")
-            and JDC_STATIC_MARKER in field_type.__metadata__
-        ):
-            static_field_names.append(field.name)
-            continue
-        if field.metadata.get(JDC_STATIC_MARKER, False):
-            static_field_names.append(field.name)
-            continue
+            field_type = type_from_name[field.name]
 
-        child_node_field_names.append(field.name)
+            # Two ways to mark a field as static: either via the Static[] type or
+            # jdc.static_field().
+            if (
+                hasattr(field_type, "__metadata__")
+                and JDC_STATIC_MARKER in field_type.__metadata__
+            ):
+                static_field_names.append(field.name)
+                continue
+            if field.metadata.get(JDC_STATIC_MARKER, False):
+                static_field_names.append(field.name)
+                continue
+
+            child_node_field_names.append(field.name)
+        return FieldInfo(child_node_field_names, static_field_names)
 
     # Define flatten, unflatten operations: this simple converts our dataclass to a list
     # of fields.
     def _flatten(obj):
-        children = tuple(getattr(obj, key) for key in child_node_field_names)
-        treedef = tuple(getattr(obj, key) for key in static_field_names)
+        field_info = get_field_info()
+        children = tuple(getattr(obj, key) for key in field_info.child_node_field_names)
+        treedef = tuple(getattr(obj, key) for key in field_info.static_field_names)
         return children, treedef
 
     def _unflatten(treedef, children):
+        field_info = get_field_info()
         return cls(
-            **dict(zip(child_node_field_names, children)),
-            **{key: tdef for key, tdef in zip(static_field_names, treedef)},
+            **dict(zip(field_info.child_node_field_names, children)),
+            **{key: tdef for key, tdef in zip(field_info.static_field_names, treedef)},
         )
 
     tree_util.register_pytree_node(cls, _flatten, _unflatten)
@@ -114,17 +132,19 @@ def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
     if serialization is not None:
 
         def _to_state_dict(x: T):
+            field_info = get_field_info()
             state_dict = {
                 name: serialization.to_state_dict(getattr(x, name))
-                for name in child_node_field_names
+                for name in field_info.child_node_field_names
             }
             return state_dict
 
         def _from_state_dict(x: T, state: Dict):
             # Copy the state so we can pop the restored fields.
+            field_info = get_field_info()
             state = state.copy()
             updates = {}
-            for name in child_node_field_names:
+            for name in field_info.child_node_field_names:
                 if name not in state:
                     raise ValueError(
                         f"Missing field {name} in state dict while restoring"

@@ -82,6 +82,7 @@ def get_type_hints_partial(obj, include_extras=False) -> Dict[str, Any]:
         return hints
 
     nsobj = obj
+
     # Find globalns for the unwrapped object.
     while hasattr(nsobj, "__wrapped__"):
         nsobj = nsobj.__wrapped__
