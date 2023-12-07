@@ -69,7 +69,7 @@ def test_copy_and_mutate_static() -> None:
     @jdc.pytree_dataclass
     class Foo:
         arrays: Dict[str, onp.ndarray]
-        child: Inner = jdc.static_field()
+        child: jdc.Static[Inner]
 
     obj = Foo(arrays={"x": onp.ones(3)}, child=Inner(1, 2))
 

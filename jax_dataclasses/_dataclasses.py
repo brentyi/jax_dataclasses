@@ -36,7 +36,7 @@ def pytree_dataclass(cls: Optional[Type] = None, **kwargs):
     PyTrees."""
 
     def wrap(cls):
-        return dataclasses.dataclass(cls, **kwargs)
+        return _register_pytree_dataclass(dataclasses.dataclass(cls, **kwargs))
 
     if "frozen" in kwargs:
         assert kwargs["frozen"] is True, "Pytree dataclasses can only be frozen!"
@@ -63,7 +63,7 @@ class FieldInfo:
     static_field_names: List[str]
 
 
-def register_pytree_dataclass(cls: Type[T]) -> Type[T]:
+def _register_pytree_dataclass(cls: Type[T]) -> Type[T]:
     """Register a dataclass as a flax-serializable pytree container."""
 
     assert dataclasses.is_dataclass(cls)
@@ -159,7 +159,8 @@ def register_pytree_dataclass(cls: Type[T]) -> Type[T]:
                     f'Unknown field(s) "{names}" in state dict while'
                     f" restoring an instance of {cls.__name__}"
                 )
-            return dataclasses.replace(x, **updates)
+
+            return dataclasses.replace(x, **updates)  # type: ignore
 
         serialization.register_serialization_state(
             cls, _to_state_dict, _from_state_dict
@@ -169,4 +170,4 @@ def register_pytree_dataclass(cls: Type[T]) -> Type[T]:
     cls.__mutability__ = _copy_and_mutate._Mutability.FROZEN  # type: ignore
     cls.__setattr__ = _copy_and_mutate._new_setattr  # type: ignore
 
-    return cls
+    return cls  # type: ignore

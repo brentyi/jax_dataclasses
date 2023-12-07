@@ -84,7 +84,7 @@ class EnforcedAnnotationsMixin:
         # For each field...
         for field in dataclasses.fields(self):
             type_hint = hint_from_name[field.name]
-            value = self.__getattribute__(field.name)
+            value = getattr(self, field.name)
 
             if isinstance(value, EnforcedAnnotationsMixin):
                 child_batch_axes = getattr(value, "__batch_axes__")

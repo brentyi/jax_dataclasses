@@ -1,6 +1,5 @@
 import inspect
-from typing import (Any, Callable, Iterable, Optional, TypeVar, Union, cast,
-                    overload)
+from typing import Any, Callable, Optional, Sequence, TypeVar, Union, cast, overload
 
 import jax
 from jaxlib import xla_client as xc
@@ -17,7 +16,7 @@ def jit(
     *,
     device: Optional[xc.Device] = None,
     backend: Optional[str] = None,
-    donate_argnums: Union[int, Iterable[int]] = (),
+    donate_argnums: Union[int, Sequence[int]] = (),
     inline: bool = False,
     keep_unused: bool = False,
     abstracted_axes: Optional[Any] = None,
@@ -31,7 +30,7 @@ def jit(
     *,
     device: Optional[xc.Device] = None,
     backend: Optional[str] = None,
-    donate_argnums: Union[int, Iterable[int]] = (),
+    donate_argnums: Union[int, Sequence[int]] = (),
     inline: bool = False,
     keep_unused: bool = False,
     abstracted_axes: Optional[Any] = None,
@@ -44,7 +43,7 @@ def jit(
     *,
     device: Optional[xc.Device] = None,
     backend: Optional[str] = None,
-    donate_argnums: Union[int, Iterable[int]] = (),
+    donate_argnums: Union[int, Sequence[int]] = (),
     inline: bool = False,
     keep_unused: bool = False,
     abstracted_axes: Optional[Any] = None,

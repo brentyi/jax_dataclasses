@@ -21,7 +21,8 @@ if TYPE_CHECKING:
     # for now...
     from dataclasses import dataclass as pytree_dataclass
 else:
-    from ._dataclasses import pytree_dataclass
+    from ._dataclasses import pytree_dataclass  # noqa
+    from ._dataclasses import deprecated_static_field as static_field  # noqa
 
 from ._dataclasses import Static
 from ._enforced_annotations import EnforcedAnnotationsMixin
