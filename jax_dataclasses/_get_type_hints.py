@@ -77,6 +77,8 @@ def get_type_hints_partial(obj, include_extras=False) -> Dict[str, Any]:
                 if value is None:
                     value = type(None)
                 if isinstance(value, str):
+                    # The * replace is a hack for variadic generic support.
+                    value = value.replace("*", "")
                     value = eval(value, base_globals)
                 hints[name] = value
         return hints
@@ -102,6 +104,8 @@ def get_type_hints_partial(obj, include_extras=False) -> Dict[str, Any]:
         if value is None:
             value = type(None)
         if isinstance(value, str):
+            # The * replace is a hack for variadic generic support.
+            value = value.replace("*", "")
             value = eval(value, base_globals)
         hints[name] = value
     return hints

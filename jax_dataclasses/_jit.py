@@ -20,8 +20,7 @@ def jit(
     inline: bool = False,
     keep_unused: bool = False,
     abstracted_axes: Optional[Any] = None,
-) -> CallableType:
-    ...
+) -> CallableType: ...
 
 
 @overload
@@ -34,8 +33,7 @@ def jit(
     inline: bool = False,
     keep_unused: bool = False,
     abstracted_axes: Optional[Any] = None,
-) -> Callable[[CallableType], CallableType]:
-    ...
+) -> Callable[[CallableType], CallableType]: ...
 
 
 def jit(

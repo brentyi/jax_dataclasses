@@ -1,5 +1,4 @@
-"""Tests for serialization using `flax.serialization`.
-"""
+"""Tests for serialization using `flax.serialization`."""
 
 import flax
 import numpy as onp

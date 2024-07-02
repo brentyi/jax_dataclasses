@@ -58,9 +58,9 @@ def copy_and_mutate(obj: T, validate: bool = True) -> ContextManager[T]:
         # Mark it as mutable.
         _mark_mutable(
             obj_copy,
-            mutable=_Mutability.MUTABLE
-            if validate
-            else _Mutability.MUTABLE_NO_VALIDATION,
+            mutable=(
+                _Mutability.MUTABLE if validate else _Mutability.MUTABLE_NO_VALIDATION
+            ),
             visited=set(),
         )
 
