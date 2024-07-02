@@ -96,33 +96,29 @@ def _new_setattr(self, name: str, value: Any):
 
         # Check leaf shapes.
         new_shapes = tuple(
-            leaf.shape
+            leaf.shape if hasattr(leaf, "shape") else tuple()
             for leaf in tree_util.tree_leaves(value)
-            if hasattr(leaf, "shape")
         )
         cur_shapes = tuple(
-            leaf.shape
+            leaf.shape if hasattr(leaf, "shape") else tuple()
             for leaf in tree_util.tree_leaves(current_value)
-            if hasattr(leaf, "shape")
         )
         assert (
             new_shapes == cur_shapes
-        ), f"Shape error: {new_shapes} does not match {cur_shapes}!"
+        ), f"Shape error: new shapes {new_shapes} do not match original {cur_shapes}!"
 
         # Check leaf dtypes.
         new_dtypes = tuple(
-            _unify_floats(leaf.dtype)
+            _unify_floats(leaf.dtype) if hasattr(leaf, "dtype") else type(leaf)
             for leaf in tree_util.tree_leaves(value)
-            if hasattr(leaf, "dtype")
         )
         cur_dtypes = tuple(
-            _unify_floats(leaf.dtype)
+            _unify_floats(leaf.dtype) if hasattr(leaf, "dtype") else type(leaf)
             for leaf in tree_util.tree_leaves(current_value)
-            if hasattr(leaf, "dtype")
         )
         assert (
             new_dtypes == cur_dtypes
-        ), f"Type error: {new_dtypes} does not match {cur_dtypes}!"
+        ), f"Type error: new dtypes {new_dtypes} do not match original {cur_dtypes}!"
 
         object.__setattr__(self, name, value)
 
