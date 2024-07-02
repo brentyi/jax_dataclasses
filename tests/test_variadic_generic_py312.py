@@ -1,3 +1,7 @@
+# mypy: ignore-errors
+#
+# PEP 695 generics aren't yet supported in mypy.
+
 from __future__ import annotations
 
 from typing import Generic, TypeVarTuple
