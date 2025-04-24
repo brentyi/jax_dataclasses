@@ -1,11 +1,11 @@
 import contextlib
 import dataclasses
 import enum
-from typing import Any, ContextManager, Sequence, Set, TypeVar
+from typing import Any, ContextManager, Set, TypeVar
 
 from jax import numpy as jnp
 from jax import tree_util
-from jax._src.tree_util import _registry  # Dangerous!
+from jax.tree_util import default_registry
 
 T = TypeVar("T")
 
@@ -14,17 +14,6 @@ class _Mutability(enum.Enum):
     FROZEN = enum.auto()
     MUTABLE = enum.auto()
     MUTABLE_NO_VALIDATION = enum.auto()
-
-
-def _tree_children(container: Any) -> Sequence[Any]:
-    """Grab child nodes of a pytree. This would ideally be implemented using the pytree
-    registry."""
-
-    registry_entry = _registry.get(type(container))
-    if registry_entry is not None:
-        children, _metadata = registry_entry.to_iter(container)
-        return list(children)
-    return []
 
 
 def _mark_mutable(obj: Any, mutable: _Mutability, visited: Set[Any]) -> None:
@@ -41,7 +30,10 @@ def _mark_mutable(obj: Any, mutable: _Mutability, visited: Set[Any]) -> None:
     if dataclasses.is_dataclass(obj):
         object.__setattr__(obj, "__mutability__", mutable)
 
-    for child in _tree_children(obj):
+    flattened = default_registry.flatten_one_level(obj)
+    if flattened is None:
+        return
+    for child in flattened[0]:
         _mark_mutable(child, mutable, visited)
 
 
@@ -103,9 +95,9 @@ def _new_setattr(self, name: str, value: Any):
             leaf.shape if hasattr(leaf, "shape") else tuple()
             for leaf in tree_util.tree_leaves(current_value)
         )
-        assert (
-            new_shapes == cur_shapes
-        ), f"Shape error: new shapes {new_shapes} do not match original {cur_shapes}!"
+        assert new_shapes == cur_shapes, (
+            f"Shape error: new shapes {new_shapes} do not match original {cur_shapes}!"
+        )
 
         # Check leaf dtypes.
         new_dtypes = tuple(
@@ -116,9 +108,10 @@ def _new_setattr(self, name: str, value: Any):
             _unify_floats(leaf.dtype) if hasattr(leaf, "dtype") else type(leaf)
             for leaf in tree_util.tree_leaves(current_value)
         )
-        assert (
-            new_dtypes == cur_dtypes
-        ), f"Type error: new dtypes {new_dtypes} do not match original {cur_dtypes}!"
+        for new, cur in zip(new_dtypes, cur_dtypes):
+            assert new == cur or new in (int, float) or cur in (int, float), (
+                f"Type error: new dtypes {new_dtypes} do not match original {cur_dtypes}!"
+            )
 
         object.__setattr__(self, name, value)
 

@@ -16,7 +16,7 @@ setup(
     package_data={"jax_dataclasses": ["py.typed"]},
     python_requires=">=3.8",
     install_requires=[
-        "jax",
+        "jax>=0.4.25",  # For `jax.tree_util.default_registry`
         "jaxlib",
         "typing_extensions",
     ],

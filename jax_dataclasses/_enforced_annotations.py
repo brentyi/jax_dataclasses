@@ -96,17 +96,17 @@ class EnforcedAnnotationsMixin:
             if not hasattr(type_hint, "__metadata__"):
                 continue
             metadata: Tuple[Any, ...] = type_hint.__metadata__
-            assert (
-                len(metadata) <= 2
-            ), "We expect <= 2 metadata items; only shape and dtype are expected."
+            assert len(metadata) <= 2, (
+                "We expect <= 2 metadata items; only shape and dtype are expected."
+            )
 
             # Check data type.
             metadata_dtype = tuple(filter(_is_dtype, metadata))
             if len(metadata_dtype) > 0 and hasattr(value, "dtype"):
                 (dtype,) = metadata_dtype
-                assert jnp.issubdtype(
-                    value.dtype, dtype
-                ), f"Mismatched dtype, expected {dtype} but got {value.dtype}."
+                assert jnp.issubdtype(value.dtype, dtype), (
+                    f"Mismatched dtype, expected {dtype} but got {value.dtype}."
+                )
 
             # Shape checks.
             metadata_shape = tuple(filter(_is_expected_shape, metadata))
@@ -122,9 +122,9 @@ class EnforcedAnnotationsMixin:
                 if batch_axes is None:
                     batch_axes = field_batch_axes
                 else:
-                    assert (
-                        batch_axes == field_batch_axes
-                    ), f"Batch axis mismatch: {batch_axes} and {field_batch_axes}."
+                    assert batch_axes == field_batch_axes, (
+                        f"Batch axis mismatch: {batch_axes} and {field_batch_axes}."
+                    )
 
         # Check child batch axes: any batch axes present in the parent should be present
         # in the children as well.
@@ -170,7 +170,7 @@ def _check_batch_axes(
 
         shape_error = (
             "Shape did not match annotation: expected"
-            f" ({','.join(map(str,expected_prefix + ('*',) + expected_suffix))}) but"
+            f" ({','.join(map(str, expected_prefix + ('*',) + expected_suffix))}) but"
             f" got {shape}."
         )
         assert suffix == expected_suffix, shape_error
