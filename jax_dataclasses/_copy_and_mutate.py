@@ -82,7 +82,7 @@ def _new_setattr(self, name: str, value: Any):
         current_value = getattr(self, name)
 
         # Make sure tree structure is unchanged.
-        assert tree_util.tree_structure(value) == tree_util.tree_structure(
+        assert tree_util.tree_structure(value) == tree_util.tree_structure(  # type: ignore
             current_value
         ), "Mismatched tree structure!"
 
