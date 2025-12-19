@@ -74,16 +74,19 @@ def jit(
                 else:
                     static_argnames.append(name)
 
-        jit_kwargs = dict(
-            static_argnums=static_argnums if len(static_argnums) > 0 else None,
-            static_argnames=static_argnames if len(static_argnames) else None,
-            device=device,
-            backend=backend,
-            donate_argnums=donate_argnums,
-            inline=inline,
-            keep_unused=keep_unused,
+        return cast(
+            CallableType,
+            jax.jit(
+                fun,
+                static_argnums=static_argnums if len(static_argnums) > 0 else None,
+                static_argnames=static_argnames if len(static_argnames) else None,
+                device=device,
+                backend=backend,
+                donate_argnums=donate_argnums,
+                inline=inline,
+                keep_unused=keep_unused,
+            ),
         )
-        return cast(CallableType, jax.jit(fun, **jit_kwargs))
 
     if fun is None:
         return wrap
