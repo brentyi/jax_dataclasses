@@ -9,6 +9,7 @@ from ._get_type_hints import get_type_hints_partial
 
 CallableType = TypeVar("CallableType", bound=Callable)
 
+_JIT_PARAMS = set(inspect.signature(jax.jit).parameters)
 
 @overload
 def jit(
@@ -77,20 +78,26 @@ def jit(
                 else:
                     static_argnames.append(name)
 
-        return cast(
-            CallableType,
-            jax.jit(
-                fun,
-                static_argnums=static_argnums if len(static_argnums) > 0 else None,
-                static_argnames=static_argnames if len(static_argnames) > 0 else None,
-                device=device,
-                backend=backend,
-                donate_argnums=donate_argnums,
-                inline=inline,
-                keep_unused=keep_unused,
-                abstracted_axes=abstracted_axes,
-            ),
+        jit_kwargs = dict(
+            static_argnums=static_argnums if len(static_argnums) > 0 else None,
+            static_argnames=static_argnames if len(static_argnames) else None,
+            device=device,
+            backend=backend,
+            donate_argnums=donate_argnums,
+            inline=inline,
+            keep_unused=keep_unused,
         )
+
+        if "abstracted_axes" in _JIT_PARAMS:
+            jit_kwargs["abstracted_axes"] = abstracted_axes
+        else:
+            if abstracted_axes is not None:
+                raise TypeError(
+                    "This JAX version does not support jax.jit(..., abstracted_axes=...). "
+                    "If you need shape polymorphism, use jax.export with symbolic shapes instead."
+                )
+
+        return cast(CallableType, jax.jit(fun, **jit_kwargs))
 
     if fun is None:
         return wrap
