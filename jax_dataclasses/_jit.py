@@ -1,5 +1,5 @@
 import inspect
-from typing import Any, Callable, Optional, Sequence, TypeVar, Union, cast, overload
+from typing import Callable, Optional, Sequence, TypeVar, Union, cast, overload
 
 import jax
 from jaxlib import xla_client as xc
@@ -19,7 +19,6 @@ def jit(
     donate_argnums: Union[int, Sequence[int]] = (),
     inline: bool = False,
     keep_unused: bool = False,
-    abstracted_axes: Optional[Any] = None,
 ) -> CallableType: ...
 
 
@@ -32,7 +31,6 @@ def jit(
     donate_argnums: Union[int, Sequence[int]] = (),
     inline: bool = False,
     keep_unused: bool = False,
-    abstracted_axes: Optional[Any] = None,
 ) -> Callable[[CallableType], CallableType]: ...
 
 
@@ -44,7 +42,6 @@ def jit(
     donate_argnums: Union[int, Sequence[int]] = (),
     inline: bool = False,
     keep_unused: bool = False,
-    abstracted_axes: Optional[Any] = None,
 ) -> Union[CallableType, Callable[[CallableType], CallableType]]:
     """Light wrapper around `jax.jit`, with usability and type checking improvements.
 
@@ -82,13 +79,12 @@ def jit(
             jax.jit(
                 fun,
                 static_argnums=static_argnums if len(static_argnums) > 0 else None,
-                static_argnames=static_argnames if len(static_argnames) > 0 else None,
+                static_argnames=static_argnames if len(static_argnames) else None,
                 device=device,
                 backend=backend,
                 donate_argnums=donate_argnums,
                 inline=inline,
                 keep_unused=keep_unused,
-                abstracted_axes=abstracted_axes,
             ),
         )
 
