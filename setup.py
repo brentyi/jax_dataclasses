@@ -23,6 +23,7 @@ setup(
     extras_require={
         "testing": [
             "flax",  # Used for serialization tests.
+            "jaxtyping",
             "pytest",
             "pytest-cov",
         ]
